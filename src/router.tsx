@@ -6,7 +6,23 @@ import { LoginPage } from './features/auth/LoginPage'
 import { ResetPage } from './features/auth/ResetPage'
 import { SignupPage } from './features/auth/SignupPage'
 import { VerifyEmailPage } from './features/auth/VerifyEmailPage'
-import { HomePage } from './features/home/HomePage'
+import { AccountPage } from './features/account/AccountPage'
+import { AdminPage } from './features/admin/AdminPage'
+import { ApiKeysPage } from './features/api-keys/ApiKeysPage'
+import { ComposePage } from './features/compose/ComposePage'
+import { CustomersPage } from './features/customers/CustomersPage'
+import { DevelopersPage } from './features/developers/DevelopersPage'
+import { MessagesPage } from './features/messages/MessagesPage'
+import { CreateOrgPage } from './features/orgs/CreateOrgPage'
+import { IndexRedirect } from './features/orgs/IndexRedirect'
+import { OverviewPage } from './features/overview/OverviewPage'
+import { QrPage } from './features/qr/QrPage'
+import { DangerPage } from './features/settings/DangerPage'
+import { SettingsPage } from './features/settings/SettingsPage'
+import { TeamPage } from './features/team/TeamPage'
+import { AppLayout } from './layout/AppLayout'
+import { OrgProvider } from './orgs/OrgProvider'
+import { RequireRole } from './orgs/RequireRole'
 
 /**
  * Route objects, exported so tests can mount them with createMemoryRouter.
@@ -28,7 +44,47 @@ export const routes: RouteObject[] = [
       { path: '/reset', element: <ResetPage /> },
       {
         element: <RequireAuth />,
-        children: [{ path: '/', element: <HomePage /> }],
+        children: [
+          {
+            element: <AppLayout />,
+            children: [
+              { path: '/', element: <IndexRedirect /> },
+              { path: '/orgs/new', element: <CreateOrgPage /> },
+              { path: '/account', element: <AccountPage /> },
+              { path: '/admin', element: <AdminPage /> },
+              {
+                path: '/orgs/:orgId',
+                element: <OrgProvider />,
+                children: [
+                  { index: true, element: <OverviewPage /> },
+                  { path: 'compose', element: <ComposePage /> },
+                  { path: 'messages', element: <MessagesPage /> },
+                  { path: 'qr', element: <QrPage /> },
+                  { path: 'customers', element: <CustomersPage /> },
+                  { path: 'api-keys', element: <ApiKeysPage /> },
+                  { path: 'team', element: <TeamPage /> },
+                  {
+                    path: 'settings',
+                    element: (
+                      <RequireRole can="editSettings">
+                        <SettingsPage />
+                      </RequireRole>
+                    ),
+                  },
+                  {
+                    path: 'settings/danger',
+                    element: (
+                      <RequireRole can="deleteOrg">
+                        <DangerPage />
+                      </RequireRole>
+                    ),
+                  },
+                  { path: 'developers', element: <DevelopersPage /> },
+                ],
+              },
+            ],
+          },
+        ],
       },
     ],
   },
