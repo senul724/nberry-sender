@@ -22,3 +22,24 @@ body {
   @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
   overflow-x: hidden;
 }
+
+/* "Print poster" on the QR page: print only the poster, on A5. */
+@page {
+  size: A5;
+  margin: 10mm;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-poster,
+  .print-poster * {
+    visibility: visible;
+  }
+  .print-poster {
+    position: absolute;
+    inset: 0;
+    padding-top: 10mm;
+  }
+}
