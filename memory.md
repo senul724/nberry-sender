@@ -36,3 +36,4 @@ Vite + React 19 + TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), React Ro
 - 2026-11-19 — Task 1: scaffolded Vite/Tailwind/Vitest/MSW, UI primitives in `src/ui`, test harness.
 - 2026-11-19 — Tasks 3-4: auth screens, then org shell/roles/overview plus Task 3 review follow-ups.
 - 2026-11-19 — Task 5: Compose (idempotency key per attempt, client validation mirroring backend) and Messages table; org outlet keyed by org id.
+- 2026-11-19: Task 7 done (Team, Danger zone, Customers) plus Task 6 follow-ups.
