@@ -102,7 +102,7 @@ describe('QR page', () => {
     await user.click(
       within(screen.getByRole('dialog')).getByRole('button', { name: 'Regenerate code' }),
     )
-    expect(await screen.findByText('No way')).toBeInTheDocument()
+    expect(await screen.findByText("You don't have permission to do that.")).toBeInTheDocument()
     expect(screen.getByLabelText('Follow link')).toHaveValue(link('abc123'))
   })
 

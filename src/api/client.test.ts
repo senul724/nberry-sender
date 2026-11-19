@@ -457,6 +457,27 @@ describe('friendlyMessage', () => {
     expect(friendlyMessage(new ApiError(400, 'something_new', 'Server says hi'))).toBe(
       'Server says hi',
     )
+    for (const code of [
+      'forbidden',
+      'internal_error',
+      'invalid_code',
+      'invalid_mfa_token',
+      'email_taken',
+      'unauthorized',
+      'invalid_name',
+      'invalid_website',
+      'invalid_description',
+      'invalid_email',
+      'invalid_status',
+      'password_required',
+      'invalid_google_token',
+      'google_not_configured',
+      'deletion_conflict',
+    ]) {
+      expect(friendlyMessage(new ApiError(400, code, 'terse backend text'))).not.toBe(
+        'terse backend text',
+      )
+    }
     expect(friendlyMessage(new Error('plain'))).toBe('plain')
     expect(friendlyMessage('weird')).toBe('Something went wrong. Please try again.')
   })

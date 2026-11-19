@@ -395,13 +395,19 @@ describe('Task 3 follow-ups', () => {
     await fillLogin(user)
     await user.type(await screen.findByLabelText('6-digit code'), '123456')
     await user.click(screen.getByRole('button', { name: 'Verify' }))
-    expect(await screen.findByText('Wrong code')).toBeInTheDocument()
+    expect(
+      await screen.findByText('That code is incorrect or has expired. Request a new one.'),
+    ).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Back to sign in' }))
-    expect(screen.queryByText('Wrong code')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('That code is incorrect or has expired. Request a new one.'),
+    ).not.toBeInTheDocument()
     await user.type(screen.getByLabelText('Password'), 'hunter2hunter2')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
     expect(await screen.findByLabelText('6-digit code')).toHaveValue('')
-    expect(screen.queryByText('Wrong code')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('That code is incorrect or has expired. Request a new one.'),
+    ).not.toBeInTheDocument()
   })
 
   it.each(['/\\evil.example', 'https://evil.example', 'javascript:alert(1)', '//evil.example'])(

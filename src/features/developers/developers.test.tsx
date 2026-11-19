@@ -1,11 +1,40 @@
 import { screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 import { orgHandlers, testMe, testOrg } from '../../test/handlers'
 import { renderApp } from '../../test/render'
 import { server } from '../../test/server'
 
+const cfg = vi.hoisted(() => ({ apiBaseUrl: '' }))
+vi.mock('../../config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../config')>()
+  return {
+    config: new Proxy(actual.config, {
+      get: (t, k) => (k === 'apiBaseUrl' ? cfg.apiBaseUrl : Reflect.get(t, k)),
+    }),
+  }
+})
+
 describe('developers page', () => {
+  it('uses the configured API base URL in the examples when one is set', async () => {
+    cfg.apiBaseUrl = 'https://api.nberry.test'
+    try {
+      // The client now targets the configured API host, so match any origin.
+      server.use(
+        http.get('*/v1/me', () => HttpResponse.json(testMe)),
+        http.get('*/v1/orgs', () => HttpResponse.json({ orgs: [testOrg()] })),
+        http.get('*/v1/orgs/o1', () => HttpResponse.json(testOrg())),
+      )
+      renderApp({ route: '/orgs/o1/developers' })
+      await screen.findByRole('heading', { name: 'Developers', level: 1 })
+      const text = document.body.textContent ?? ''
+      expect(text).toContain('https://api.nberry.test/v1/send/broadcasts')
+    } finally {
+      cfg.apiBaseUrl = ''
+    }
+  })
+
   it('contains every /v1/send endpoint path from the spec and no real-looking key', async () => {
     server.use(...orgHandlers([testOrg()]))
     renderApp({ route: '/orgs/o1/developers', session: testMe })

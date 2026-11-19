@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { config } from '../../config'
 import { Button } from '../../ui/Button'
 
 const KEY = 'nb_live_…'
@@ -172,7 +173,8 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
 }
 
 export function DevelopersPage() {
-  const base = window.location.origin
+  // The API may live on another origin than the dashboard (VITE_API_BASE_URL).
+  const base = config.apiBaseUrl || window.location.origin
   return (
     <div className="max-w-3xl space-y-8">
       <h1 className="text-2xl font-semibold">Developers</h1>

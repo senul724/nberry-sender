@@ -283,7 +283,7 @@ describe('callback secret', () => {
       ),
     )
     await user.click(await screen.findByRole('button', { name: 'Reveal secret' }))
-    expect(await screen.findByText('Not allowed')).toBeInTheDocument()
+    expect(await screen.findByText("You don't have permission to do that.")).toBeInTheDocument()
   })
 })
 
