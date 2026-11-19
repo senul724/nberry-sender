@@ -2,7 +2,7 @@
 
 ## Overview
 Web dashboard for nBerry senders (orgs): setup, compose broadcasts, messages, QR, API keys, team, account, admin.
-- **Status:** Plan 1 (all screens) merged to main 2026-11-19 (16205cf); 197 tests green. No git remote yet (push pending a GitHub repo). Next: manual run against the real backend + browser QA (dialog focus trap, MFA, Google).
+- **Status:** Plan 1 (all screens) merged to main 2026-11-19 (16205cf); 197 tests green. Remote: git@github.com:senul724/nberry-sender.git (main pushed). Next: manual run against the real backend + browser QA (dialog focus trap, MFA, Google).
 - Design: `docs/superpowers/specs/2026-11-19-sender-dashboard-design.md`. Plan: `docs/superpowers/plans/2026-11-19-plan-1-dashboard.md`.
 
 ## Tech Stack
@@ -35,7 +35,7 @@ Vite + React 19 + TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), React Ro
 - [ ] Try it against the real backend (`pnpm dev`).
 
 ## Session Log
-- 2026-11-19 — Merged Plan 1 (whole dashboard) to main; final review caught 5 backend-integration bugs (refresh 403 csrf_failed, admin my_role, sign-out-all, wrong-password refresh, stale org list), all fixed. No remote to push to yet.
+- 2026-11-19 — Merged Plan 1 (whole dashboard) to main; final review caught 5 backend-integration bugs (refresh 403 csrf_failed, admin my_role, sign-out-all, wrong-password refresh, stale org list), all fixed. Pushed to github.com:senul724/nberry-sender.
 - 2026-11-19 — Created repo, design doc and plan; started subagent-driven build.
 - 2026-11-19 — Task 1: scaffolded Vite/Tailwind/Vitest/MSW, UI primitives in `src/ui`, test harness.
 - 2026-11-19 — Tasks 3-4: auth screens, then org shell/roles/overview plus Task 3 review follow-ups.
