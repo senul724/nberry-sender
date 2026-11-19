@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../../api/client'
 import { friendlyMessage } from '../../api/errors'
-import { Org, OrgStatus } from '../../api/schemas'
+import { AdminOrg, OrgStatus } from '../../api/schemas'
 import { useMe } from '../../auth/session'
 import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
@@ -22,16 +22,16 @@ export function AdminPage() {
   const [status, setStatus] = useState<OrgStatus>('verified')
   const [rate, setRate] = useState('')
   const [rateError, setRateError] = useState<string | undefined>()
-  const [updated, setUpdated] = useState<Org | null>(null)
+  const [updated, setUpdated] = useState<AdminOrg | null>(null)
 
   const base = `/v1/admin/orgs/${encodeURIComponent(orgId.trim())}`
   const setStatusM = useMutation({
-    mutationFn: () => api.put(`${base}/status`, { schema: Org, body: { status } }),
+    mutationFn: () => api.put(`${base}/status`, { schema: AdminOrg, body: { status } }),
     onSuccess: setUpdated,
   })
   const setRateM = useMutation({
     mutationFn: (n: number) =>
-      api.put(`${base}/send-rate`, { schema: Org, body: { send_rate_per_sec: n } }),
+      api.put(`${base}/send-rate`, { schema: AdminOrg, body: { send_rate_per_sec: n } }),
     onSuccess: setUpdated,
   })
 

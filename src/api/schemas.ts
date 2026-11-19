@@ -49,6 +49,10 @@ export const Org = z.object({
 })
 export type Org = z.infer<typeof Org>
 
+/** Admin endpoints return an Org without `my_role` (the caller is not a member). */
+export const AdminOrg = Org.extend({ my_role: Role.optional() })
+export type AdminOrg = z.infer<typeof AdminOrg>
+
 export const OrgList = z.object({ orgs: z.array(Org) })
 export type OrgList = z.infer<typeof OrgList>
 

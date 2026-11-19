@@ -9,6 +9,7 @@ import { GoogleButton } from '../../auth/GoogleButton'
 import { ME_KEY, useMe } from '../../auth/session'
 import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
+import { Dialog } from '../../ui/Dialog'
 import { EmptyState } from '../../ui/EmptyState'
 import { ErrorState } from '../../ui/ErrorState'
 import { Field } from '../../ui/Field'
@@ -235,6 +236,8 @@ function EmailSection({ me }: { me: Me }) {
 
 function SessionsSection() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const [confirmAll, setConfirmAll] = useState(false)
   const list = useQuery({
     queryKey: SESSIONS_KEY,
     queryFn: () => api.get('/v1/me/sessions', { schema: SessionList }),
@@ -247,10 +250,15 @@ function SessionsSection() {
   })
   const revokeAll = useMutation({
     mutationFn: () => api.delete('/v1/me/sessions', { schema: undefinedSchema }),
-    onSuccess: refresh,
+    // The backend revokes every session, this one included, and clears the auth cookies.
+    onSuccess: () => {
+      setConfirmAll(false)
+      navigate('/login', { replace: true })
+      queryClient.clear()
+    },
   })
   const label = (s: Session) => s.device_name || s.platform || s.client
-  const actionError = revoke.error ?? revokeAll.error
+  const actionError = revoke.error
 
   return (
     <Section title="Sessions">
@@ -297,16 +305,42 @@ function SessionsSection() {
           />
           <Button
             variant="secondary"
-            loading={revokeAll.isPending}
             onClick={() => {
               revoke.reset()
-              revokeAll.mutate()
+              revokeAll.reset()
+              setConfirmAll(true)
             }}
           >
-            Sign out everywhere else
+            Sign out everywhere
           </Button>
         </>
       )}
+      <Dialog
+        open={confirmAll}
+        onClose={() => setConfirmAll(false)}
+        title="Sign out everywhere?"
+      >
+        <p className="text-sm">
+          This ends every session, including this one. You will need to sign in again.
+        </p>
+        {revokeAll.error && (
+          <div className="mt-3">
+            <Banner tone="error">{friendlyMessage(revokeAll.error)}</Banner>
+          </div>
+        )}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setConfirmAll(false)}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            loading={revokeAll.isPending}
+            onClick={() => revokeAll.mutate()}
+          >
+            Sign out everywhere
+          </Button>
+        </div>
+      </Dialog>
     </Section>
   )
 }
@@ -381,7 +415,7 @@ function DeleteSection({ me }: { me: Me }) {
             </p>
           </div>
         )}
-        {err && !soleOwner && !reauth && <Banner tone="error">{friendlyMessage(err)}</Banner>}
+        {err && !soleOwner?.success && !reauth && <Banner tone="error">{friendlyMessage(err)}</Banner>}
         <Button
           type="submit"
           variant="danger"

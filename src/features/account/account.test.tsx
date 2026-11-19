@@ -1,9 +1,9 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { Session } from '../../api/schemas'
-import { ORIGIN, testMe } from '../../test/handlers'
+import { ORIGIN, orgHandlers, testMe } from '../../test/handlers'
 import { renderApp } from '../../test/render'
 import { server } from '../../test/server'
 
@@ -127,7 +127,28 @@ describe('account', () => {
     await waitFor(() => expect(screen.queryByText('Firefox on Linux')).not.toBeInTheDocument())
   })
 
-  it('sign out everywhere else calls DELETE /v1/me/sessions', async () => {
+  it('sign out everywhere confirms, revokes all sessions (including this one), clears the cache and goes to /login', async () => {
+    const user = userEvent.setup()
+    let called = 0
+    const { router, queryClient } = setup()
+    const clear = vi.spyOn(queryClient, 'clear')
+    server.use(
+      ...orgHandlers([]),
+      http.delete(`${ORIGIN}/v1/me/sessions`, () => {
+        called++
+        return new HttpResponse(null, { status: 204 })
+      }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Sign out everywhere' }))
+    expect(called).toBe(0) // nothing happens until confirmed
+    const dialog = await screen.findByRole('dialog', { name: /sign out everywhere/i })
+    await user.click(within(dialog).getByRole('button', { name: 'Sign out everywhere' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/login'))
+    expect(called).toBe(1)
+    expect(clear).toHaveBeenCalled()
+  })
+
+  it('cancelling the sign-out-everywhere dialog sends nothing', async () => {
     const user = userEvent.setup()
     let called = 0
     setup()
@@ -137,8 +158,10 @@ describe('account', () => {
         return new HttpResponse(null, { status: 204 })
       }),
     )
-    await user.click(await screen.findByRole('button', { name: 'Sign out everywhere else' }))
-    await waitFor(() => expect(called).toBe(1))
+    await user.click(await screen.findByRole('button', { name: 'Sign out everywhere' }))
+    const dialog = await screen.findByRole('dialog', { name: /sign out everywhere/i })
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(called).toBe(0)
   })
 
   it('delete account sole_owner lists the orgs with links', async () => {
@@ -160,6 +183,16 @@ describe('account', () => {
     const link = await screen.findByRole('link', { name: 'Acme Coffee' })
     expect(link).toHaveAttribute('href', '/orgs/o1/team')
     expect(screen.getByRole('link', { name: 'Bean Co' })).toHaveAttribute('href', '/orgs/o2/team')
+  })
+
+  it('delete account sole_owner with a malformed body falls back to the friendly message', async () => {
+    const user = userEvent.setup()
+    server.use(http.delete(`${ORIGIN}/v1/me`, () => err(409, 'sole_owner', { orgs: 'nope' })))
+    setup()
+    const r = await screen.findByRole('region', { name: 'Delete account' })
+    await user.type(within(r).getByLabelText('Password'), 'pw-pw-pw-pw')
+    await user.click(within(r).getByRole('button', { name: 'Delete account' }))
+    expect(await within(r).findByText(/only owner of one or more senders/)).toBeInTheDocument()
   })
 
   it('delete account reauth_required shows the Google re-auth prompt', async () => {

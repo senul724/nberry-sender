@@ -2,9 +2,15 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { ORIGIN, testMe, testOrg } from '../../test/handlers'
+import { ORIGIN, testMe, testOrg as baseOrg } from '../../test/handlers'
 import { renderApp } from '../../test/render'
 import { server } from '../../test/server'
+
+/** Admin endpoints return an Org without `my_role` (the backend omits it). */
+function testOrg(overrides: Parameters<typeof baseOrg>[0] = {}) {
+  const { my_role: _omitted, ...org } = baseOrg(overrides)
+  return org
+}
 
 const admin = { ...testMe, is_admin: true }
 
