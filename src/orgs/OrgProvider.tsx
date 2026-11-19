@@ -50,7 +50,8 @@ export function OrgProvider() {
           {org.data.status === 'verified' && <VerifiedBadge />}
         </div>
         <StatusBanner status={org.data.status} />
-        <Outlet />
+        {/* Keyed by org so switching sender resets page state (e.g. a compose draft and its key). */}
+        <Outlet key={org.data.id} />
       </div>
     </OrgContext.Provider>
   )

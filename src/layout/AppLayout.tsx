@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useParams } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useMe } from '../auth/session'
 import { LogoutButton } from '../features/auth/LogoutButton'
 import { permissions } from '../orgs/roles'
@@ -30,7 +30,10 @@ export function AppLayout() {
   const { orgId } = useParams()
   const me = useMe()
   const org = useOrg(orgId)
-  const [open, setOpen] = useState(false)
+  const { pathname } = useLocation()
+  // The menu is open only for the pathname it was opened on, so any navigation closes it.
+  const [openAt, setOpenAt] = useState<string | null>(null)
+  const open = openAt === pathname
 
   const base = `/orgs/${orgId}`
   const items: NavItem[] = []
@@ -52,8 +55,6 @@ export function AppLayout() {
   const account: NavItem[] = [{ to: '/account', label: 'Account' }]
   if (me.data?.is_admin) account.push({ to: '/admin', label: 'Admin' })
 
-  const close = () => setOpen(false)
-
   return (
     <div className="min-h-screen md:flex">
       <header className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 md:hidden dark:border-zinc-800">
@@ -62,7 +63,7 @@ export function AppLayout() {
           variant="secondary"
           aria-expanded={open}
           aria-controls="main-nav"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => setOpenAt(open ? null : pathname)}
         >
           Menu
         </Button>
@@ -79,13 +80,7 @@ export function AppLayout() {
         <OrgSwitcher />
         <nav id="main-nav" aria-label="Main" className="flex-1 space-y-1">
           {[...items, ...account].map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={itemClass}
-              onClick={close}
-            >
+            <NavLink key={item.to} to={item.to} end={item.end} className={itemClass}>
               {item.label}
             </NavLink>
           ))}

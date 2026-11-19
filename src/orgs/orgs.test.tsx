@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react'
+import { act, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -247,5 +247,18 @@ describe('overview', () => {
     renderApp({ route: '/orgs/o1', session: testMe })
     expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Add a logo' })).toBeInTheDocument()
+  })
+})
+
+describe('mobile menu closes on any navigation', () => {
+  it('closes when the pathname changes by other means than a nav-link click', async () => {
+    const user = userEvent.setup()
+    const { router } = setup([testOrg()], '/orgs/o1')
+    await screen.findByRole('heading', { name: 'Overview' })
+    const menu = screen.getByRole('button', { name: 'Menu' })
+    await user.click(menu)
+    expect(menu).toHaveAttribute('aria-expanded', 'true')
+    await act(() => router.navigate('/orgs/o1/messages'))
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false')
   })
 })
