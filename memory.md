@@ -19,10 +19,15 @@ Vite + React 19 + TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), React Ro
 - Refresh rotates every time; reuse of an old refresh token revokes the session → refresh must be single-flight.
 
 ## How to Run
-(filled in by Task 1)
+- Backend: `ENV=dev COOKIE_SECURE=false WEB_ORIGINS=http://localhost:5173` (Go API on :8080).
+- `pnpm install && pnpm dev` -> http://localhost:5173 (Vite proxies `/v1` to :8080).
+- Checks: `pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
+- Env vars (only read in `src/config.ts`): `VITE_API_BASE_URL`, `VITE_LINK_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`; see `.env.example` and README.
+- Pins: TypeScript ~6.0 (typescript-eslint doesn't support TS 7 yet), MSW 2.x (brief/API: `onUnhandledRequest`; MSW 3 dropped it from `listen`).
 
 ## Current Focus / Next Steps
-- [ ] Plan 1 tasks 1–8.
+- [x] Task 1 scaffold done. [ ] Tasks 2–8 (API client, auth, org screens...).
 
 ## Session Log
 - 2026-11-19 — Created repo, design doc and plan; started subagent-driven build.
+- 2026-11-19 — Task 1: scaffolded Vite/Tailwind/Vitest/MSW, UI primitives in `src/ui`, test harness.

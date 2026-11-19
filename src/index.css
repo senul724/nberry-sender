@@ -1,0 +1,24 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-berry-50: #fdf4ff;
+  --color-berry-100: #fae8ff;
+  --color-berry-200: #f5d0fe;
+  --color-berry-300: #f0abfc;
+  --color-berry-400: #c084fc;
+  --color-berry-500: #a855f7;
+  --color-berry-600: #7c3aed;
+  --color-berry-700: #6d28d9;
+  --color-berry-800: #5b21b6;
+  --color-berry-900: #4c1d95;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+  overflow-x: hidden;
+}
