@@ -40,6 +40,17 @@ describe('settings details', () => {
     expect(patches).toEqual([{ name: 'Acme Roasters' }])
   })
 
+  it('saving refreshes the org list and that org only, not the rest of its cache tree', async () => {
+    const user = userEvent.setup()
+    const { queryClient } = setup()
+    queryClient.setQueryData(['orgs', 'o1', 'messages'], { messages: [] })
+    const name = await screen.findByLabelText('Name')
+    await user.type(name, ' Two')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await screen.findByText('Saved')
+    expect(queryClient.getQueryState(['orgs', 'o1', 'messages'])?.isInvalidated).toBe(false)
+  })
+
   it('trims text values before comparing and sending', async () => {
     const user = userEvent.setup()
     const { patches } = setup(testOrg({ description: 'Beans' }))

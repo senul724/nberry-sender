@@ -6,6 +6,7 @@ import { friendlyMessage } from '../../api/errors'
 import { Org } from '../../api/schemas'
 import { config } from '../../config'
 import { useCurrentOrg } from '../../orgs/context'
+import { useRole } from '../../orgs/roles'
 import { orgKey, orgsKey } from '../../orgs/queries'
 import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
@@ -58,7 +59,7 @@ export function QrPage() {
       api.post(`/v1/orgs/${encodeURIComponent(org.id)}/broadcast-code`, { schema: Org }),
     onSuccess: (updated) => {
       queryClient.setQueryData(orgKey(org.id), updated)
-      void queryClient.invalidateQueries({ queryKey: orgsKey })
+      void queryClient.invalidateQueries({ queryKey: orgsKey, exact: true })
       setConfirming(false)
     },
   })
@@ -114,6 +115,7 @@ export function QrPage() {
         </Button>
       </div>
 
+      {can.editSettings && (
       <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
         <h2 className="text-base font-semibold">Regenerate code</h2>
         <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
@@ -130,6 +132,7 @@ export function QrPage() {
           Regenerate code
         </Button>
       </div>
+      )}
 
       <Dialog open={confirming} onClose={() => setConfirming(false)} title="Regenerate code?">
         <p className="text-sm">Old printed codes stop working. Your subscribers stay subscribed.</p>

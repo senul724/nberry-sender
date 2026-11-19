@@ -43,6 +43,20 @@ describe('QR page', () => {
     expect(screen.getByRole('img', { name: /QR code/ })).toBeInTheDocument()
   })
 
+  it('developers do not see Regenerate code (owner and admin only)', async () => {
+    server.use(...orgHandlers([testOrg({ my_role: 'developer' })]))
+    renderApp({ route: '/orgs/o1/qr', session: testMe })
+    await screen.findByLabelText('Follow link')
+    expect(screen.queryByRole('button', { name: 'Regenerate code' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Download PNG' })).toBeInTheDocument()
+  })
+
+  it('admins can regenerate', async () => {
+    server.use(...orgHandlers([testOrg({ my_role: 'admin' })]))
+    renderApp({ route: '/orgs/o1/qr', session: testMe })
+    expect(await screen.findByRole('button', { name: 'Regenerate code' })).toBeInTheDocument()
+  })
+
   it('regenerate requires confirm and updates the shown code', async () => {
     const user = userEvent.setup()
     let posts = 0

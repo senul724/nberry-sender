@@ -1,6 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
 import { ORIGIN, orgHandlers, testMe, testOrg } from '../../test/handlers'
 import { renderApp } from '../../test/render'
@@ -37,6 +37,27 @@ describe('danger zone', () => {
     expect(bodies).toEqual([{ confirm_name: 'Acme Coffee' }])
     expect(router.state.location.pathname).toBe('/')
     expect(queryClient.getQueryData(['orgs', 'o1'])).toBeUndefined()
+  })
+
+  it('does not bounce back to the deleted org while the org list refetches slowly', async () => {
+    const user = userEvent.setup()
+    const { router } = setup()
+    let removedOrgGets = 0
+    await user.type(await screen.findByLabelText(/to confirm/), 'Acme Coffee')
+    server.use(
+      http.get(`${ORIGIN}/v1/orgs`, async () => {
+        await delay(150)
+        return HttpResponse.json({ orgs: [] })
+      }),
+      http.get(`${ORIGIN}/v1/orgs/o1`, () => {
+        removedOrgGets++
+        return HttpResponse.json({ error: { code: 'not_found', message: 'x' } }, { status: 404 })
+      }),
+    )
+    await user.click(screen.getByRole('button', { name: 'Delete sender' }))
+    expect(await screen.findByText('Create your first sender')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/')
+    expect(removedOrgGets).toBe(0)
   })
 
   it('confirm_mismatch shows copy', async () => {

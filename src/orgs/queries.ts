@@ -24,6 +24,9 @@ export function useOrg(id: string | undefined) {
 
 /** After leaving or deleting an org: drop its whole cache subtree and refresh only the list. */
 export function dropOrg(queryClient: QueryClient, id: string): void {
+  // Remove it from the cached list first: `/` redirects to the first cached org, and a stale
+  // list would bounce the user straight back to the org they just removed.
+  queryClient.setQueryData<Org[]>(orgsKey, (list) => list?.filter((o) => o.id !== id))
   queryClient.removeQueries({ queryKey: orgKey(id) })
   void queryClient.invalidateQueries({ queryKey: orgsKey, exact: true })
 }

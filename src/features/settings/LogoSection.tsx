@@ -30,7 +30,7 @@ export function LogoSection({ org }: { org: Org }) {
 
   const done = (updated: Org) => {
     queryClient.setQueryData(orgKey(org.id), updated)
-    void queryClient.invalidateQueries({ queryKey: orgsKey })
+    void queryClient.invalidateQueries({ queryKey: orgsKey, exact: true })
     setPicked(null)
   }
   const upload = useMutation({

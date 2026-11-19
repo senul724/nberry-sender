@@ -38,7 +38,7 @@ function DetailsForm({ org }: { org: Org }) {
       api.patch(`/v1/orgs/${encodeURIComponent(org.id)}`, { schema: Org, body: patch }),
     onSuccess: (updated) => {
       queryClient.setQueryData(orgKey(org.id), updated)
-      void queryClient.invalidateQueries({ queryKey: orgsKey })
+      void queryClient.invalidateQueries({ queryKey: orgsKey, exact: true })
       setSaved(true)
     },
   })
