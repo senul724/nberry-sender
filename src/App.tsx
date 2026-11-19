@@ -1,9 +1,15 @@
-// Placeholder shell; the router and auth guard arrive in Task 3.
+import { QueryClientProvider } from '@tanstack/react-query'
+import { useState } from 'react'
+import { RouterProvider } from 'react-router-dom'
+import { createQueryClient } from './queryClient'
+import { createAppRouter } from './router'
+
 export default function App() {
+  const [queryClient] = useState(createQueryClient)
+  const [router] = useState(createAppRouter)
   return (
-    <main className="mx-auto max-w-xl p-6">
-      <h1 className="text-2xl font-semibold text-berry-700 dark:text-berry-300">nBerry Sender</h1>
-      <p className="mt-2 text-zinc-600 dark:text-zinc-400">Dashboard coming soon.</p>
-    </main>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   )
 }
