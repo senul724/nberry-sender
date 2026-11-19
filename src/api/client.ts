@@ -159,7 +159,11 @@ function refreshSession(): Promise<void> {
 function expireSession(): never {
   settleRefresh(false)
   sessionExpired()
-  throw new ApiError(401, 'invalid_refresh_token', 'Your session has expired. Please sign in again.')
+  throw new ApiError(
+    401,
+    'invalid_refresh_token',
+    'Your session has expired. Please sign in again.',
+  )
 }
 
 async function doRefresh(): Promise<void> {

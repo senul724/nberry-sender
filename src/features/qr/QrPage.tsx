@@ -34,6 +34,7 @@ const PRINT_CSS = `
 
 export function QrPage() {
   const org = useCurrentOrg()
+  const { can } = useRole()
   const queryClient = useQueryClient()
   const link = `${config.linkBaseUrl}/s/${org.broadcast_code}`
   const matrix = useMemo<QrMatrix>(() => {
@@ -116,22 +117,22 @@ export function QrPage() {
       </div>
 
       {can.editSettings && (
-      <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
-        <h2 className="text-base font-semibold">Regenerate code</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Use this if the code leaked or you want to retire old printouts.
-        </p>
-        <Button
-          variant="secondary"
-          className="mt-3"
-          onClick={() => {
-            regenerate.reset()
-            setConfirming(true)
-          }}
-        >
-          Regenerate code
-        </Button>
-      </div>
+        <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
+          <h2 className="text-base font-semibold">Regenerate code</h2>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            Use this if the code leaked or you want to retire old printouts.
+          </p>
+          <Button
+            variant="secondary"
+            className="mt-3"
+            onClick={() => {
+              regenerate.reset()
+              setConfirming(true)
+            }}
+          >
+            Regenerate code
+          </Button>
+        </div>
       )}
 
       <Dialog open={confirming} onClose={() => setConfirming(false)} title="Regenerate code?">

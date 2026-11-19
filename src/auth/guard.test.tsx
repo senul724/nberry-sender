@@ -31,10 +31,7 @@ describe('signed-out visitors', () => {
       server.use(
         http.get(`${ORIGIN}/v1/me`, unauthorized),
         http.post(`${ORIGIN}/v1/auth/refresh`, () =>
-          HttpResponse.json(
-            { error: { code: 'csrf_failed', message: 'csrf' } },
-            { status: 403 },
-          ),
+          HttpResponse.json({ error: { code: 'csrf_failed', message: 'csrf' } }, { status: 403 }),
         ),
       )
       const { router } = renderApp({ route: '/account' })

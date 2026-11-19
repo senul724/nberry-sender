@@ -315,11 +315,7 @@ function SessionsSection() {
           </Button>
         </>
       )}
-      <Dialog
-        open={confirmAll}
-        onClose={() => setConfirmAll(false)}
-        title="Sign out everywhere?"
-      >
+      <Dialog open={confirmAll} onClose={() => setConfirmAll(false)} title="Sign out everywhere?">
         <p className="text-sm">
           This ends every session, including this one. You will need to sign in again.
         </p>
@@ -332,11 +328,7 @@ function SessionsSection() {
           <Button variant="ghost" onClick={() => setConfirmAll(false)}>
             Cancel
           </Button>
-          <Button
-            variant="danger"
-            loading={revokeAll.isPending}
-            onClick={() => revokeAll.mutate()}
-          >
+          <Button variant="danger" loading={revokeAll.isPending} onClick={() => revokeAll.mutate()}>
             Sign out everywhere
           </Button>
         </div>
@@ -415,7 +407,9 @@ function DeleteSection({ me }: { me: Me }) {
             </p>
           </div>
         )}
-        {err && !soleOwner?.success && !reauth && <Banner tone="error">{friendlyMessage(err)}</Banner>}
+        {err && !soleOwner?.success && !reauth && (
+          <Banner tone="error">{friendlyMessage(err)}</Banner>
+        )}
         <Button
           type="submit"
           variant="danger"

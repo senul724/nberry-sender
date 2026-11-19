@@ -178,9 +178,7 @@ describe('refresh', () => {
     server.use(
       http.get('http://localhost:3000/v1/data', () => {
         dataCalls++
-        return dataCalls === 1
-          ? unauthorized()
-          : HttpResponse.json({ ok: true })
+        return dataCalls === 1 ? unauthorized() : HttpResponse.json({ ok: true })
       }),
       http.post('http://localhost:3000/v1/auth/refresh', () => {
         refreshCalls++
