@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { composeQrPng, type CanvasLike, type QrMatrix } from './exportQr'
+import { composeQrPng, qrSvgString, type CanvasLike, type QrMatrix } from './exportQr'
 
 const matrix: QrMatrix = { size: 21, isDark: (r, c) => (r + c) % 2 === 0 }
 
@@ -65,5 +65,20 @@ describe('composeQrPng', () => {
       loadImage: async () => ({}) as CanvasImageSource,
     })
     expect(out.withLogo).toBe(true)
+  })
+})
+
+describe('qrSvgString', () => {
+  it('is a standalone SVG with the QR path and the logo', () => {
+    const svg = qrSvgString(matrix, 'https://cdn.example/l.png?a=1&b=2', 'QR for "A & B"')
+    expect(svg).toContain('xmlns="http://www.w3.org/2000/svg"')
+    expect(svg).toContain('viewBox="0 0 29 29"')
+    expect(svg).toContain('<path d="M4 4h1v1h-1z')
+    expect(svg).toContain('href="https://cdn.example/l.png?a=1&amp;b=2"')
+    expect(svg).toContain('aria-label="QR for &quot;A &amp; B&quot;"')
+  })
+
+  it('omits the logo when there is none', () => {
+    expect(qrSvgString(matrix, null, 'x')).not.toContain('<image')
   })
 })

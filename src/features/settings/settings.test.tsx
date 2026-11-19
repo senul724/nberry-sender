@@ -40,6 +40,19 @@ describe('settings details', () => {
     expect(patches).toEqual([{ name: 'Acme Roasters' }])
   })
 
+  it('trims text values before comparing and sending', async () => {
+    const user = userEvent.setup()
+    const { patches } = setup(testOrg({ description: 'Beans' }))
+    const name = await screen.findByLabelText('Name')
+    await user.type(name, '  ')
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled()
+    await user.clear(screen.getByLabelText('Description'))
+    await user.type(screen.getByLabelText('Description'), '  Fresh beans  ')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+    await screen.findByText('Saved')
+    expect(patches).toEqual([{ description: 'Fresh beans' }])
+  })
+
   it('clearing the callback URL sends an empty string', async () => {
     const user = userEvent.setup()
     const { patches } = setup(testOrg({ callback_url: 'https://acme.test/hook' }))
@@ -144,7 +157,7 @@ describe('settings logo', () => {
   })
 
   it.each([
-    ['invalid_image', 413, /could not be used/],
+    ['invalid_image', 400, /could not be used/],
     ['too_large', 413, /too large/],
     ['storage_not_configured', 501, /storage is not set up/],
   ])('server %s shows friendly copy', async (code, status, copy) => {

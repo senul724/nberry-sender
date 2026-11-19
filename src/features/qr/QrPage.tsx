@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { renderToStaticMarkup } from 'react-dom/server'
 import QRCode from 'qrcode'
 import { api } from '../../api/client'
 import { friendlyMessage } from '../../api/errors'
@@ -12,7 +11,7 @@ import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
 import { CopyField } from '../../ui/CopyField'
 import { Dialog } from '../../ui/Dialog'
-import { composeQrPng, type QrMatrix } from './exportQr'
+import { composeQrPng, qrSvgString, type QrMatrix } from './exportQr'
 import { QrSvg } from './QrSvg'
 
 function download(blob: Blob, filename: string) {
@@ -23,6 +22,14 @@ function download(blob: Blob, filename: string) {
   a.click()
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
+
+const PRINT_CSS = `
+@page { size: A5; margin: 10mm; }
+@media print {
+  body * { visibility: hidden; }
+  .print-poster, .print-poster * { visibility: visible; }
+  .print-poster { position: absolute; inset: 0; padding-top: 10mm; }
+}`
 
 export function QrPage() {
   const org = useCurrentOrg()
@@ -40,7 +47,10 @@ export function QrPage() {
       .replace(/^-|-$/g, '') || 'nberry'
 
   const [confirming, setConfirming] = useState(false)
-  const [pngNote, setPngNote] = useState(false)
+  // The note belongs to one org + logo; it disappears when either changes.
+  const exportKey = `${org.id}|${org.logo_url ?? ''}`
+  const [pngNoteKey, setPngNoteKey] = useState<string | null>(null)
+  const pngNote = pngNoteKey === exportKey
   const [downloadError, setDownloadError] = useState<string | null>(null)
 
   const regenerate = useMutation({
@@ -57,7 +67,7 @@ export function QrPage() {
     setDownloadError(null)
     try {
       const { blob, withLogo } = await composeQrPng(matrix, org.logo_url)
-      setPngNote(!!org.logo_url && !withLogo)
+      setPngNoteKey(org.logo_url && !withLogo ? exportKey : null)
       download(blob, `${slug}-qr.png`)
     } catch (e) {
       setDownloadError(friendlyMessage(e))
@@ -65,14 +75,14 @@ export function QrPage() {
   }
 
   function downloadSvg() {
-    const svg = renderToStaticMarkup(
-      <QrSvg matrix={matrix} logoUrl={org.logo_url} label={label} xmlns />,
-    )
+    const svg = qrSvgString(matrix, org.logo_url, label)
     download(new Blob([svg], { type: 'image/svg+xml' }), `${slug}-qr.svg`)
   }
 
   return (
     <div className="max-w-xl space-y-6">
+      {/* Mounted only on this page, so Ctrl+P elsewhere prints normally. */}
+      <style>{PRINT_CSS}</style>
       <h1 className="text-2xl font-semibold">QR code</h1>
       <p className="text-sm text-zinc-600 dark:text-zinc-400">
         Customers scan this code in the nBerry app to follow {org.name}.

@@ -119,6 +119,29 @@ describe('API keys', () => {
     expect(screen.queryByDisplayValue(FULL)).not.toBeInTheDocument()
   })
 
+  it('cannot be closed while the create request is in flight, so the key is not lost', async () => {
+    const user = userEvent.setup()
+    setup([])
+    let release: () => void = () => undefined
+    const gate = new Promise<void>((r) => (release = r))
+    server.use(
+      http.post(`${ORIGIN}/v1/orgs/:id/api-keys`, async () => {
+        await gate
+        return HttpResponse.json({ ...key({ id: 'k3' }), key: FULL }, { status: 201 })
+      }),
+    )
+    await user.click(await screen.findByRole('button', { name: 'Create API key' }))
+    await user.type(screen.getByLabelText('Name'), 'CI key')
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Create key' }))
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Cancel' }),
+    ).toBeDisabled()
+    release()
+    expect(await screen.findByDisplayValue(FULL)).toBeInTheDocument()
+  })
+
   it('requires a name', async () => {
     const user = userEvent.setup()
     const { posts } = setup([])

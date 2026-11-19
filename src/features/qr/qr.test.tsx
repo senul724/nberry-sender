@@ -136,4 +136,35 @@ describe('QR page', () => {
     })
     expect(print).toHaveBeenCalledTimes(1)
   })
+
+  it('print CSS (A5, poster only) applies only while the QR page is mounted', async () => {
+    const user = userEvent.setup()
+    server.use(...orgHandlers([testOrg()]))
+    renderApp({ route: '/orgs/o1/qr', session: testMe })
+    await screen.findByLabelText('Follow link')
+    const printCss = () =>
+      [...document.querySelectorAll('style')].map((s) => s.textContent ?? '').join('\n')
+    expect(printCss()).toContain('size: A5')
+    expect(printCss()).toContain('.print-poster')
+    await user.click(screen.getByRole('link', { name: 'Compose' }))
+    await screen.findByRole('heading', { name: 'Compose' })
+    expect(printCss()).not.toContain('size: A5')
+    expect(printCss()).not.toContain('.print-poster')
+  })
+
+  it('resets the "saved without the logo" note when the logo changes', async () => {
+    const user = userEvent.setup()
+    composePng.mockResolvedValue({ blob: new Blob(['x']), withLogo: false })
+    const orgs = [testOrg({ logo_url: 'https://cdn.example/l.png' })]
+    server.use(...orgHandlers(orgs))
+    const { queryClient } = renderApp({ route: '/orgs/o1/qr', session: testMe })
+    await screen.findByLabelText('Follow link')
+    await user.click(screen.getByRole('button', { name: 'Download PNG' }))
+    await screen.findByText(/saved without the logo/i)
+    orgs[0] = testOrg({ logo_url: null })
+    act(() => queryClient.setQueryData(['orgs', 'o1'], orgs[0]))
+    await vi.waitFor(() =>
+      expect(screen.queryByText(/saved without the logo/i)).not.toBeInTheDocument(),
+    )
+  })
 })

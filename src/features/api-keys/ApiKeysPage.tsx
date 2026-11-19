@@ -22,7 +22,15 @@ const fmt = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleStr
  * Create dialog. The created key lives only in this component's state (no query or mutation
  * cache), and unmounting the dialog contents drops it.
  */
-function CreateKeyDialog({ orgId, onClose }: { orgId: string; onClose: () => void }) {
+function CreateKeyDialog({
+  orgId,
+  onClose,
+  onBusyChange,
+}: {
+  orgId: string
+  onClose: () => void
+  onBusyChange: (busy: boolean) => void
+}) {
   const queryClient = useQueryClient()
   const [name, setName] = useState('')
   const [nameError, setNameError] = useState<string | undefined>()
@@ -30,6 +38,11 @@ function CreateKeyDialog({ orgId, onClose }: { orgId: string; onClose: () => voi
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const mounted = useRef(false)
+  // Tell the page while the request is in flight so it can refuse to close the dialog.
+  useEffect(() => {
+    onBusyChange(busy)
+    return () => onBusyChange(false)
+  }, [busy, onBusyChange])
   useEffect(() => {
     mounted.current = true
     return () => {
@@ -90,7 +103,7 @@ function CreateKeyDialog({ orgId, onClose }: { orgId: string; onClose: () => voi
         }}
       />
       <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose}>
+        <Button variant="ghost" disabled={busy} onClick={onClose}>
           Cancel
         </Button>
         <Button type="submit" loading={busy}>
@@ -111,6 +124,7 @@ export function ApiKeysPage() {
       api.get(`/v1/orgs/${encodeURIComponent(org.id)}/api-keys`, { schema: ApiKeyList }),
   })
   const [creating, setCreating] = useState(false)
+  const [createBusy, setCreateBusy] = useState(false)
   const [revoking, setRevoking] = useState<ApiKey | null>(null)
 
   const revoke = useMutation({
@@ -183,8 +197,17 @@ export function ApiKeysPage() {
       )}
 
       {/* Mounted only while open, so closing drops the new key from state. */}
-      <Dialog open={creating} onClose={() => setCreating(false)} title="Create API key">
-        <CreateKeyDialog orgId={org.id} onClose={() => setCreating(false)} />
+      <Dialog
+        open={creating}
+        // Closing mid-request would drop a key the server already created, unseen.
+        onClose={() => !createBusy && setCreating(false)}
+        title="Create API key"
+      >
+        <CreateKeyDialog
+          orgId={org.id}
+          onClose={() => setCreating(false)}
+          onBusyChange={setCreateBusy}
+        />
       </Dialog>
 
       <Dialog open={revoking !== null} onClose={() => setRevoking(null)} title="Revoke API key?">

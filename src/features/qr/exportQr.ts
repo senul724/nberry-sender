@@ -12,6 +12,44 @@ export const LOGO_FRACTION = 0.2
 /** White backing square behind the logo, as a fraction of the code's width. */
 export const LOGO_BACKING = 0.24
 
+/** Geometry shared by the on-screen SVG and the downloadable SVG file, in module units. */
+export function qrGeometry(matrix: QrMatrix) {
+  const total = matrix.size + QUIET * 2
+  let d = ''
+  for (let r = 0; r < matrix.size; r++) {
+    for (let c = 0; c < matrix.size; c++) {
+      if (matrix.isDark(r, c)) d += `M${c + QUIET} ${r + QUIET}h1v1h-1z`
+    }
+  }
+  const backing = total * LOGO_BACKING
+  const logo = total * LOGO_FRACTION
+  return {
+    total,
+    d,
+    backing,
+    backingAt: (total - backing) / 2,
+    logo,
+    logoAt: (total - logo) / 2,
+  }
+}
+
+const escapeXml = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+/** A standalone .svg file for the QR with the logo centred. Pure: no React or DOM involved. */
+export function qrSvgString(matrix: QrMatrix, logoUrl: string | null | undefined, label: string) {
+  const g = qrGeometry(matrix)
+  const logo = logoUrl
+    ? `<rect x="${g.backingAt}" y="${g.backingAt}" width="${g.backing}" height="${g.backing}" fill="#ffffff"/>` +
+      `<image href="${escapeXml(logoUrl)}" x="${g.logoAt}" y="${g.logoAt}" width="${g.logo}" height="${g.logo}" preserveAspectRatio="xMidYMid meet"/>`
+    : ''
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${g.total} ${g.total}" role="img" aria-label="${escapeXml(label)}" shape-rendering="crispEdges">` +
+    `<rect width="${g.total}" height="${g.total}" fill="#ffffff"/>` +
+    `<path d="${g.d}" fill="#000000"/>${logo}</svg>`
+  )
+}
+
 interface Ctx2D {
   fillStyle: string | CanvasGradient | CanvasPattern
   fillRect: (x: number, y: number, w: number, h: number) => void

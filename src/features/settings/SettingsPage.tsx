@@ -30,7 +30,8 @@ function DetailsForm({ org }: { org: Org }) {
   const [saved, setSaved] = useState(false)
 
   const saved_ = valuesOf(org)
-  const changed = FIELDS.filter((f) => values[f] !== saved_[f])
+  const trimmed = (f: FieldName) => values[f].trim()
+  const changed = FIELDS.filter((f) => trimmed(f) !== saved_[f].trim())
 
   const save = useMutation({
     mutationFn: (patch: Partial<Values>) =>
@@ -56,7 +57,7 @@ function DetailsForm({ org }: { org: Org }) {
       return
     }
     // Only the changed fields: an absent field stays as it is on the server.
-    save.mutate(Object.fromEntries(changed.map((f) => [f, values[f]])))
+    save.mutate(Object.fromEntries(changed.map((f) => [f, trimmed(f)])))
   }
 
   return (
