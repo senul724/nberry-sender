@@ -29,9 +29,10 @@ Vite + React 19 + TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), React Ro
 - Pins: TypeScript ~6.0 (typescript-eslint doesn't support TS 7 yet), MSW 2.x (brief/API: `onUnhandledRequest`; MSW 3 dropped it from `listen`).
 
 ## Current Focus / Next Steps
-- [x] Tasks 1-4 done (scaffold, API client, auth, org shell/roles/overview). [ ] Tasks 5–8 (compose, messages, QR, keys, team, settings, account, admin): replace the placeholder pages under `src/features/*`.
+- [x] Tasks 1-5 done (scaffold, API client, auth, org shell/roles/overview, compose + messages). [ ] Tasks 6–8 (QR, keys, team, settings, account, admin): replace the placeholder pages under `src/features/*`.
 
 ## Session Log
 - 2026-11-19 — Created repo, design doc and plan; started subagent-driven build.
 - 2026-11-19 — Task 1: scaffolded Vite/Tailwind/Vitest/MSW, UI primitives in `src/ui`, test harness.
 - 2026-11-19 — Tasks 3-4: auth screens, then org shell/roles/overview plus Task 3 review follow-ups.
+- 2026-11-19 — Task 5: Compose (idempotency key per attempt, client validation mirroring backend) and Messages table; org outlet keyed by org id.
