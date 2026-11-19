@@ -270,6 +270,98 @@ describe('refresh', () => {
   })
 })
 
+describe('refresh generation guard', () => {
+  const data = 'http://localhost:3000/v1/data'
+  const slow = 'http://localhost:3000/v1/slow'
+  const refreshUrl = 'http://localhost:3000/v1/auth/refresh'
+  const unauthorized = () =>
+    HttpResponse.json({ error: { code: 'unauthorized', message: 'x' } }, { status: 401 })
+
+  it('a 401 that arrives after a successful refresh retries without a second refresh', async () => {
+    let refreshCalls = 0
+    let fresh = false
+    let slowCalls = 0
+    server.use(
+      http.get(data, () => (fresh ? HttpResponse.json({ ok: true }) : unauthorized())),
+      http.get(slow, async () => {
+        slowCalls++
+        if (slowCalls === 1) {
+          await new Promise((r) => setTimeout(r, 150))
+          return unauthorized()
+        }
+        return HttpResponse.json({ ok: true })
+      }),
+      http.post(refreshUrl, () => {
+        refreshCalls++
+        fresh = true
+        return HttpResponse.json(tokens)
+      }),
+    )
+    const late = client.api.get('/v1/slow', { schema: Ok })
+    await client.api.get('/v1/data', { schema: Ok }) // 401 -> refresh -> ok while `late` is in flight
+    await expect(late).resolves.toEqual({ ok: true })
+    expect(refreshCalls).toBe(1)
+    expect(slowCalls).toBe(2)
+  })
+
+  it('a late 401 after a failed refresh causes no second refresh and no second expired call', async () => {
+    const onExpired = vi.fn()
+    client.setSessionExpiredHandler(onExpired)
+    let refreshCalls = 0
+    let slowCalls = 0
+    server.use(
+      http.get(data, unauthorized),
+      http.get(slow, async () => {
+        slowCalls++
+        await new Promise((r) => setTimeout(r, 150))
+        return unauthorized()
+      }),
+      http.post(refreshUrl, () => {
+        refreshCalls++
+        return HttpResponse.json(
+          { error: { code: 'invalid_refresh_token', message: 'nope' } },
+          { status: 401 },
+        )
+      }),
+    )
+    const late = client.api.get('/v1/slow', { schema: Ok })
+    await expect(client.api.get('/v1/data', { schema: Ok })).rejects.toMatchObject({ status: 401 })
+    await expect(late).rejects.toMatchObject({ status: 401 })
+    expect(refreshCalls).toBe(1)
+    expect(onExpired).toHaveBeenCalledTimes(1)
+    expect(slowCalls).toBe(1)
+  })
+})
+
+describe('abort and cookie edge cases', () => {
+  it('rethrows the abort reason when the signal is aborted, not a network_error', async () => {
+    const controller = new AbortController()
+    const reason = new Error('stop')
+    server.use(
+      http.get('http://localhost:3000/v1/hang', async () => {
+        await new Promise((r) => setTimeout(r, 200))
+        return HttpResponse.json({ ok: true })
+      }),
+    )
+    const p = client.api.get('/v1/hang', { schema: Ok, signal: controller.signal })
+    controller.abort(reason)
+    await expect(p).rejects.toBe(reason)
+  })
+
+  it('a malformed percent-encoded nb_csrf cookie falls back to the raw value instead of throwing', async () => {
+    document.cookie = 'nb_csrf=%E0%A4%A; path=/'
+    let header: string | null = null
+    server.use(
+      http.post('http://localhost:3000/v1/x', ({ request }) => {
+        header = request.headers.get('x-csrf-token')
+        return HttpResponse.json({ ok: true })
+      }),
+    )
+    await client.api.post('/v1/x', { schema: Ok, body: {} })
+    expect(header).toBe('%E0%A4%A')
+  })
+})
+
 describe('validation and errors', () => {
   it('a non-JSON or schema-mismatched response rejects with a clear error, never unvalidated data', async () => {
     server.use(

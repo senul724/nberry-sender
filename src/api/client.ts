@@ -25,7 +25,14 @@ const RACE_WAIT_MS = 300
 function readCsrfCookie(): string | undefined {
   for (const part of document.cookie.split(';')) {
     const [name, ...rest] = part.trim().split('=')
-    if (name === 'nb_csrf') return decodeURIComponent(rest.join('='))
+    if (name === 'nb_csrf') {
+      const raw = rest.join('=')
+      try {
+        return decodeURIComponent(raw)
+      } catch {
+        return raw // malformed percent-encoding: use the raw value
+      }
+    }
   }
   return undefined
 }
@@ -74,8 +81,8 @@ async function send(method: Method, path: string, opts: Omit<RequestOptions<unkn
       credentials: 'include',
       signal: opts.signal,
     })
-  } catch (e) {
-    if (e instanceof DOMException && e.name === 'AbortError') throw e
+  } catch {
+    if (opts.signal?.aborted) throw opts.signal.reason
     throw new ApiError(0, 'network_error', 'Network request failed')
   }
 }
@@ -127,6 +134,14 @@ async function parse<T>(res: Response, schema: z.ZodType<T>): Promise<T> {
 // --- single-flight refresh ----------------------------------------------------------
 
 let refreshing: Promise<void> | undefined
+/** Bumped whenever a refresh settles with a definite outcome (success/race or session expiry). */
+let refreshGeneration = 0
+let lastRefreshOk = true
+
+function settleRefresh(ok: boolean): void {
+  refreshGeneration++
+  lastRefreshOk = ok
+}
 
 /**
  * One refresh per tab: the backend rotates the refresh token on every use, so a second
@@ -146,14 +161,17 @@ async function doRefresh(): Promise<void> {
   if (res.ok) {
     const tokens = await parse(res, TokensWeb)
     rememberCsrf(tokens.csrf_token)
+    settleRefresh(true)
     return
   }
   const err = await toApiError(res)
   if (err.code === 'refresh_race') {
     await new Promise((resolve) => setTimeout(resolve, RACE_WAIT_MS))
+    settleRefresh(true)
     return
   }
   if (res.status === 401 || err.code === 'invalid_refresh_token' || err.code === 'refresh_reused') {
+    settleRefresh(false)
     sessionExpired()
   }
   throw err
@@ -162,9 +180,16 @@ async function doRefresh(): Promise<void> {
 // --- public API --------------------------------------------------------------------
 
 async function request<T>(method: Method, path: string, opts: RequestOptions<T>): Promise<T> {
+  const sentAt = refreshGeneration
   let res = await send(method, path, opts)
   if (res.status === 401 && !path.startsWith('/v1/auth/')) {
-    await refreshSession()
+    if (sentAt === refreshGeneration) {
+      await refreshSession()
+    } else if (!lastRefreshOk) {
+      // The session expired while this request was in flight: don't refresh or expire again.
+      throw await toApiError(res)
+    }
+    // else: a refresh succeeded after this request was sent; just retry once.
     res = await send(method, path, opts)
   }
   if (!res.ok) throw await toApiError(res)
