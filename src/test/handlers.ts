@@ -31,11 +31,18 @@ export function sessionHandlers(session: Me | null): RequestHandler[] {
   if (session) return [http.get(`${ORIGIN}/v1/me`, () => HttpResponse.json(session))]
   return [
     http.get(`${ORIGIN}/v1/me`, unauthorized),
-    http.post(`${ORIGIN}/v1/auth/refresh`, () =>
-      HttpResponse.json(
-        { error: { code: 'invalid_refresh_token', message: 'nope' } },
-        { status: 401 },
-      ),
+    // Like the real backend: the CSRF check runs before the refresh cookie is read, so a
+    // visitor without an nb_csrf cookie gets 403 csrf_failed, not 401.
+    http.post(`${ORIGIN}/v1/auth/refresh`, ({ request }) =>
+      request.headers.get('x-csrf-token')
+        ? HttpResponse.json(
+            { error: { code: 'invalid_refresh_token', message: 'nope' } },
+            { status: 401 },
+          )
+        : HttpResponse.json(
+            { error: { code: 'csrf_failed', message: 'csrf check failed' } },
+            { status: 403 },
+          ),
     ),
   ]
 }

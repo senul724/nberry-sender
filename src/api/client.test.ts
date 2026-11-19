@@ -11,13 +11,15 @@ let friendlyMessage: typeof import('./errors').friendlyMessage
 
 const tokens = { session_id: 's1', access_expires_at: '2026-11-19T10:15:00Z', csrf_token: 'fresh' }
 const Ok = z.object({ ok: z.boolean() })
+const unauthorized = () =>
+  HttpResponse.json({ error: { code: 'unauthorized', message: 'expired' } }, { status: 401 })
 
 function setCsrfCookie(value: string | null) {
   document.cookie = value === null ? 'nb_csrf=; max-age=0; path=/' : `nb_csrf=${value}; path=/`
 }
 
 beforeEach(async () => {
-  setCsrfCookie(null)
+  setCsrfCookie('c0') // a signed-in browser has nb_csrf; tests that need none clear it
   vi.resetModules() // fresh module state (remembered csrf, in-flight refresh) per test
   client = await import('./client')
   ;({ ApiError, friendlyMessage } = await import('./errors'))
@@ -46,6 +48,7 @@ describe('request basics', () => {
   })
 
   it('falls back to the remembered csrf_token when the cookie is absent', async () => {
+    setCsrfCookie(null)
     client.rememberCsrf('remembered')
     let header: string | null = null
     server.use(
@@ -136,7 +139,7 @@ describe('refresh', () => {
     let fresh = false
     server.use(
       http.get('http://localhost:3000/v1/data', () =>
-        fresh ? HttpResponse.json({ ok: true }) : new HttpResponse(null, { status: 401 }),
+        fresh ? HttpResponse.json({ ok: true }) : unauthorized(),
       ),
       http.post('http://localhost:3000/v1/auth/refresh', async ({ request }) => {
         body = await request.json()
@@ -155,7 +158,7 @@ describe('refresh', () => {
     let fresh = false
     server.use(
       http.get('http://localhost:3000/v1/data', () =>
-        fresh ? HttpResponse.json({ ok: true }) : new HttpResponse(null, { status: 401 }),
+        fresh ? HttpResponse.json({ ok: true }) : unauthorized(),
       ),
       http.post('http://localhost:3000/v1/auth/refresh', () => {
         counter.refresh++
@@ -176,7 +179,7 @@ describe('refresh', () => {
       http.get('http://localhost:3000/v1/data', () => {
         dataCalls++
         return dataCalls === 1
-          ? new HttpResponse(null, { status: 401 })
+          ? unauthorized()
           : HttpResponse.json({ ok: true })
       }),
       http.post('http://localhost:3000/v1/auth/refresh', () => {
@@ -200,7 +203,7 @@ describe('refresh', () => {
       const onExpired = vi.fn()
       client.setSessionExpiredHandler(onExpired)
       server.use(
-        http.get('http://localhost:3000/v1/data', () => new HttpResponse(null, { status: 401 })),
+        http.get('http://localhost:3000/v1/data', () => unauthorized()),
         http.post('http://localhost:3000/v1/auth/refresh', () =>
           HttpResponse.json({ error: { code, message: 'nope' } }, { status: 401 }),
         ),
@@ -222,7 +225,7 @@ describe('refresh', () => {
     const onExpired = vi.fn()
     client.setSessionExpiredHandler(onExpired)
     server.use(
-      http.get('http://localhost:3000/v1/data', () => new HttpResponse(null, { status: 401 })),
+      http.get('http://localhost:3000/v1/data', () => unauthorized()),
       http.post('http://localhost:3000/v1/auth/refresh', () =>
         HttpResponse.json({ error: { code: 'internal', message: 'boom' } }, { status: 500 }),
       ),
@@ -270,13 +273,65 @@ describe('refresh', () => {
   })
 })
 
+describe('refresh preconditions', () => {
+  it('a 401 with no CSRF value skips the refresh call and expires the session', async () => {
+    setCsrfCookie(null)
+    const onExpired = vi.fn()
+    client.setSessionExpiredHandler(onExpired)
+    let refreshCalls = 0
+    server.use(
+      http.get('http://localhost:3000/v1/data', unauthorized),
+      http.post('http://localhost:3000/v1/auth/refresh', () => {
+        refreshCalls++
+        return HttpResponse.json(tokens)
+      }),
+    )
+    await expect(client.api.get('/v1/data', { schema: Ok })).rejects.toMatchObject({ status: 401 })
+    expect(refreshCalls).toBe(0)
+    expect(onExpired).toHaveBeenCalledTimes(1)
+  })
+
+  it('a 403 csrf_failed from refresh expires the session', async () => {
+    const onExpired = vi.fn()
+    client.setSessionExpiredHandler(onExpired)
+    server.use(
+      http.get('http://localhost:3000/v1/data', unauthorized),
+      http.post('http://localhost:3000/v1/auth/refresh', () =>
+        HttpResponse.json({ error: { code: 'csrf_failed', message: 'x' } }, { status: 403 }),
+      ),
+    )
+    await expect(client.api.get('/v1/data', { schema: Ok })).rejects.toMatchObject({ status: 401 })
+    expect(onExpired).toHaveBeenCalledTimes(1)
+  })
+
+  it('a 401 that is not "unauthorized" (e.g. invalid_credentials) is final: one request, no refresh', async () => {
+    let refreshCalls = 0
+    let putCalls = 0
+    server.use(
+      http.put('http://localhost:3000/v1/me/2fa', () => {
+        putCalls++
+        return HttpResponse.json(
+          { error: { code: 'invalid_credentials', message: 'bad password' } },
+          { status: 401 },
+        )
+      }),
+      http.post('http://localhost:3000/v1/auth/refresh', () => {
+        refreshCalls++
+        return HttpResponse.json(tokens)
+      }),
+    )
+    await expect(
+      client.api.put('/v1/me/2fa', { schema: Ok, body: { password: 'x' } }),
+    ).rejects.toMatchObject({ status: 401, code: 'invalid_credentials' })
+    expect(refreshCalls).toBe(0)
+    expect(putCalls).toBe(1)
+  })
+})
+
 describe('refresh generation guard', () => {
   const data = 'http://localhost:3000/v1/data'
   const slow = 'http://localhost:3000/v1/slow'
   const refreshUrl = 'http://localhost:3000/v1/auth/refresh'
-  const unauthorized = () =>
-    HttpResponse.json({ error: { code: 'unauthorized', message: 'x' } }, { status: 401 })
-
   it('a 401 that arrives after a successful refresh retries without a second refresh', async () => {
     let refreshCalls = 0
     let fresh = false

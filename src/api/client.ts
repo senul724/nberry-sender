@@ -156,7 +156,16 @@ function refreshSession(): Promise<void> {
   return refreshing
 }
 
+function expireSession(): never {
+  settleRefresh(false)
+  sessionExpired()
+  throw new ApiError(401, 'invalid_refresh_token', 'Your session has expired. Please sign in again.')
+}
+
 async function doRefresh(): Promise<void> {
+  // The backend checks CSRF before it reads the refresh cookie, so with no CSRF value the
+  // call can only fail (403 csrf_failed): a signed-out visitor, not a recoverable session.
+  if (!csrfToken()) expireSession()
   const res = await send('POST', REFRESH_PATH, { body: { client: 'web' } })
   if (res.ok) {
     const tokens = await parse(res, TokensWeb)
@@ -170,6 +179,7 @@ async function doRefresh(): Promise<void> {
     settleRefresh(true)
     return
   }
+  if (err.code === 'csrf_failed') expireSession()
   if (res.status === 401 || err.code === 'invalid_refresh_token' || err.code === 'refresh_reused') {
     settleRefresh(false)
     sessionExpired()
@@ -183,11 +193,14 @@ async function request<T>(method: Method, path: string, opts: RequestOptions<T>)
   const sentAt = refreshGeneration
   let res = await send(method, path, opts)
   if (res.status === 401 && !path.startsWith('/v1/auth/')) {
+    const err = await toApiError(res)
+    // Only an access-token failure is worth a refresh; e.g. invalid_credentials is final.
+    if (err.code !== 'unauthorized') throw err
     if (sentAt === refreshGeneration) {
       await refreshSession()
     } else if (!lastRefreshOk) {
       // The session expired while this request was in flight: don't refresh or expire again.
-      throw await toApiError(res)
+      throw err
     }
     // else: a refresh succeeded after this request was sent; just retry once.
     res = await send(method, path, opts)
