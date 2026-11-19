@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { renderWithProviders } from '../test/render'
 import { CopyField } from './CopyField'
+import { Button } from './Button'
 import { Dialog } from './Dialog'
 import { Field } from './Field'
 
@@ -61,6 +62,15 @@ describe('Field', () => {
   })
 })
 
+describe('Button', () => {
+  it('keeps its accessible name while loading', () => {
+    renderWithProviders(<Button loading>Save</Button>)
+    const button = screen.getByRole('button', { name: 'Save' })
+    expect(button).toHaveAttribute('aria-busy', 'true')
+    expect(button).toBeDisabled()
+  })
+})
+
 describe('config', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
@@ -76,6 +86,8 @@ describe('config', () => {
 
   it('defaults VITE_LINK_BASE_URL to https://nberry.app', async () => {
     vi.stubEnv('VITE_LINK_BASE_URL', '')
+    vi.stubEnv('VITE_API_BASE_URL', '')
+    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', '')
     vi.resetModules()
     const { config } = await import('../config')
     expect(config.linkBaseUrl).toBe('https://nberry.app')

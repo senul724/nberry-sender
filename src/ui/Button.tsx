@@ -40,7 +40,7 @@ export function Button({
       )}
       {...rest}
     >
-      {loading && <Spinner className="size-4" />}
+      {loading && <Spinner decorative className="size-4" />}
       {children}
     </button>
   )

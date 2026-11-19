@@ -1,8 +1,17 @@
 import { cx } from './cx'
 
-export function Spinner({ className, label = 'Loading' }: { className?: string; label?: string }) {
+export function Spinner({
+  className,
+  label = 'Loading',
+  decorative = false,
+}: {
+  className?: string
+  label?: string
+  /** Hide from assistive tech (e.g. inside a button that already has aria-busy). */
+  decorative?: boolean
+}) {
   return (
-    <span role="status" className="inline-flex">
+    <span {...(decorative ? { 'aria-hidden': true } : { role: 'status' })} className="inline-flex">
       <svg
         aria-hidden="true"
         viewBox="0 0 24 24"
@@ -17,7 +26,7 @@ export function Spinner({ className, label = 'Loading' }: { className?: string; 
           strokeLinecap="round"
         />
       </svg>
-      <span className="sr-only">{label}</span>
+      {!decorative && <span className="sr-only">{label}</span>}
     </span>
   )
 }
