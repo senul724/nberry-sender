@@ -5,15 +5,17 @@ import { cx } from './cx'
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   label: string
   error?: string
+  /** Keep the label for assistive tech only (e.g. inside a table cell). */
+  hideLabel?: boolean
 }
 
-export function Select({ label, error, id, className, children, ...rest }: SelectProps) {
+export function Select({ label, error, hideLabel, id, className, children, ...rest }: SelectProps) {
   const auto = useId()
   const selectId = id ?? auto
   const errorId = `${selectId}-error`
   return (
     <div className="space-y-1">
-      <label htmlFor={selectId} className="block text-sm font-medium">
+      <label htmlFor={selectId} className={hideLabel ? 'sr-only' : 'block text-sm font-medium'}>
         {label}
       </label>
       <select
