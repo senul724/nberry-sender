@@ -261,4 +261,14 @@ describe('mobile menu closes on any navigation', () => {
     await act(() => router.navigate('/orgs/o1/messages'))
     expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false')
   })
+
+  it('does not reopen when you come back to the pathname it was opened on', async () => {
+    const user = userEvent.setup()
+    const { router } = setup([testOrg()], '/orgs/o1')
+    await screen.findByRole('heading', { name: 'Overview' })
+    await user.click(screen.getByRole('button', { name: 'Menu' }))
+    await act(() => router.navigate('/orgs/o1/messages'))
+    await act(() => router.navigate('/orgs/o1'))
+    expect(screen.getByRole('button', { name: 'Menu' })).toHaveAttribute('aria-expanded', 'false')
+  })
 })

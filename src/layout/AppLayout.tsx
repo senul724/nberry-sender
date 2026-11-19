@@ -31,8 +31,10 @@ export function AppLayout() {
   const me = useMe()
   const org = useOrg(orgId)
   const { pathname } = useLocation()
-  // The menu is open only for the pathname it was opened on, so any navigation closes it.
+  // The menu is open only for the pathname it was opened on; any navigation closes it for good
+  // (adjusting state during render, so coming back to the same path does not reopen it).
   const [openAt, setOpenAt] = useState<string | null>(null)
+  if (openAt !== null && openAt !== pathname) setOpenAt(null)
   const open = openAt === pathname
 
   const base = `/orgs/${orgId}`

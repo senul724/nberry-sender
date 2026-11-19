@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
@@ -55,6 +55,36 @@ describe('compose sending', () => {
     await user.dblClick(sendBtn())
     expect(await screen.findByText(/Broadcast queued/)).toBeInTheDocument()
     expect(sent).toHaveLength(1)
+  })
+
+  it('two submits in the same tick post once (in-flight guard, not just isPending)', async () => {
+    const user = userEvent.setup()
+    const { sent } = setup(async () => {
+      await new Promise((r) => setTimeout(r, 30))
+      return ok202()
+    })
+    await fill(user)
+    const form = sendBtn().closest('form')
+    if (!form) throw new Error('no form')
+    act(() => {
+      form.requestSubmit()
+      form.requestSubmit()
+    })
+    expect(await screen.findByText(/Broadcast queued/)).toBeInTheDocument()
+    expect(sent).toHaveLength(1)
+  })
+
+  it('"Start a new message" is disabled while a send is pending', async () => {
+    const user = userEvent.setup()
+    setup(async () => {
+      await new Promise((r) => setTimeout(r, 30))
+      return ok202()
+    })
+    await fill(user)
+    await user.click(sendBtn())
+    expect(screen.getByRole('button', { name: 'Start a new message' })).toBeDisabled()
+    expect(await screen.findByText(/Broadcast queued/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Start a new message' })).toBeEnabled()
   })
 
   it('a failed send (500) then retry reuses the same idempotency_key', async () => {

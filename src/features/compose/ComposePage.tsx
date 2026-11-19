@@ -54,6 +54,8 @@ export function ComposePage() {
   // One key per compose attempt: reused on retry and double-click, renewed after a success.
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID())
   const [sent, setSent] = useState(false)
+  // Synchronous guard: state-based isPending lags a render behind a second submit in the same tick.
+  const inFlight = useRef(false)
 
   const send = useMutation({
     mutationFn: (key: string) =>
@@ -66,6 +68,9 @@ export function ComposePage() {
           idempotency_key: key,
         },
       }),
+    onSettled: () => {
+      inFlight.current = false
+    },
     onSuccess: () => {
       setTitle('')
       setBody('')
@@ -89,11 +94,12 @@ export function ComposePage() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (send.isPending) return
+    if (inFlight.current || send.isPending) return
     const found = validateForm(title, body, rows)
     setErrors(found)
     if (hasErrors(found)) return
     setSent(false)
+    inFlight.current = true
     send.mutate(idempotencyKey)
   }
 
@@ -158,7 +164,11 @@ export function ComposePage() {
           <Button type="submit" loading={send.isPending}>
             Send broadcast
           </Button>
-          <Button variant={conflict ? 'secondary' : 'ghost'} onClick={startNew}>
+          <Button
+            variant={conflict ? 'secondary' : 'ghost'}
+            onClick={startNew}
+            disabled={send.isPending}
+          >
             Start a new message
           </Button>
         </div>
