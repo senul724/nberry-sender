@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type QueryClient } from '@tanstack/react-query'
 import { api } from '../api/client'
 import { Org, OrgList } from '../api/schemas'
 
@@ -20,4 +20,10 @@ export function useOrg(id: string | undefined) {
     queryFn: () => api.get(`/v1/orgs/${encodeURIComponent(id ?? '')}`, { schema: Org }),
     enabled: !!id,
   })
+}
+
+/** After leaving or deleting an org: drop its whole cache subtree and refresh only the list. */
+export function dropOrg(queryClient: QueryClient, id: string): void {
+  queryClient.removeQueries({ queryKey: orgKey(id) })
+  void queryClient.invalidateQueries({ queryKey: orgsKey, exact: true })
 }

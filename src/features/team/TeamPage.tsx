@@ -7,7 +7,7 @@ import { friendlyMessage } from '../../api/errors'
 import { Member, MemberList, type Role } from '../../api/schemas'
 import { useMe } from '../../auth/session'
 import { useCurrentOrg } from '../../orgs/context'
-import { orgKey, orgsKey } from '../../orgs/queries'
+import { dropOrg, orgKey, orgsKey } from '../../orgs/queries'
 import { useRole } from '../../orgs/roles'
 import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
@@ -46,6 +46,7 @@ export function TeamPage() {
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState<string | undefined>()
   const [addRole, setAddRole] = useState<'admin' | 'developer'>('developer')
+  const [added, setAdded] = useState(false)
   const [removing, setRemoving] = useState<Member | null>(null)
 
   const refreshOrg = () => {
@@ -57,6 +58,7 @@ export function TeamPage() {
     mutationFn: (v: { email: string; role: Role }) => api.post(base, { schema: Member, body: v }),
     onSuccess: async () => {
       setEmail('')
+      setAdded(true)
       await queryClient.invalidateQueries({ queryKey: listKey })
     },
   })
@@ -82,8 +84,7 @@ export function TeamPage() {
       if (m.user_id === me.data?.id) {
         // We left: go home first so nothing refetches this org, then drop its caches.
         navigate('/', { replace: true })
-        queryClient.removeQueries({ queryKey: orgKey(org.id) })
-        void queryClient.invalidateQueries({ queryKey: orgsKey })
+        dropOrg(queryClient, org.id)
         return
       }
       await queryClient.invalidateQueries({ queryKey: listKey })
@@ -98,6 +99,7 @@ export function TeamPage() {
       setEmailError('Enter their email address.')
       return
     }
+    setAdded(false)
     add.mutate({ email: trimmed, role: addRole })
   }
 
@@ -107,6 +109,9 @@ export function TeamPage() {
     change.reset()
     remove.reset()
   }
+
+  const isSelf = removing !== null && removing.user_id === me.data?.id
+  const leaving = isSelf && !can.manageMembers
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -133,6 +138,7 @@ export function TeamPage() {
                 onChange={(e) => {
                   setEmail(e.target.value)
                   setEmailError(undefined)
+                  setAdded(false)
                   add.reset()
                 }}
               />
@@ -149,10 +155,34 @@ export function TeamPage() {
           <Button type="submit" loading={add.isPending}>
             Add member
           </Button>
+          {added && <Banner tone="success">Added</Banner>}
         </form>
       )}
 
       {actionError && <Banner tone="error">{friendlyMessage(actionError)}</Banner>}
+
+      {!can.manageMembers && me.data && (
+        <div>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              resetErrors()
+              const self = members.data?.members.find((m) => m.user_id === me.data.id)
+              setRemoving(
+                self ?? {
+                  user_id: me.data.id,
+                  email: me.data.email,
+                  name: me.data.name,
+                  role: org.my_role,
+                  joined_at: '',
+                },
+              )
+            }}
+          >
+            Leave this sender
+          </Button>
+        </div>
+      )}
 
       {members.isPending && (
         <div className="flex justify-center py-10">
@@ -234,9 +264,13 @@ export function TeamPage() {
         />
       )}
 
-      <Dialog open={removing !== null} onClose={() => setRemoving(null)} title="Remove member?">
+      <Dialog
+        open={removing !== null}
+        onClose={() => setRemoving(null)}
+        title={leaving ? 'Leave this sender?' : 'Remove member?'}
+      >
         <p className="text-sm">
-          {removing?.user_id === me.data?.id
+          {isSelf
             ? `You will lose access to ${org.name}.`
             : `${removing?.email} will lose access to ${org.name}.`}
         </p>
@@ -249,7 +283,7 @@ export function TeamPage() {
             loading={remove.isPending}
             onClick={() => removing && remove.mutate(removing)}
           >
-            Remove
+            {leaving ? 'Leave' : 'Remove'}
           </Button>
         </div>
       </Dialog>

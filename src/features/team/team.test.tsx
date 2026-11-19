@@ -153,4 +153,42 @@ describe('team', () => {
     expect(await screen.findByText('Create your first sender')).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/')
   })
+
+  it('shows an Added note after adding a member', async () => {
+    const user = userEvent.setup()
+    setup()
+    await user.type(await screen.findByLabelText('Email'), 'new@example.com')
+    await user.click(screen.getByRole('button', { name: 'Add member' }))
+    expect(await screen.findByText('Added')).toBeInTheDocument()
+  })
+
+  it('non-owner can leave the sender, goes home and does not refetch the departed org', async () => {
+    const user = userEvent.setup()
+    let orgGets = 0
+    const { calls, router } = setup(testOrg({ my_role: 'developer' }), [
+      member({ user_id: 'u1', email: 'ada@example.com', name: 'Ada Lovelace', role: 'developer' }),
+      member({ user_id: 'u2', email: 'own@example.com', name: 'Own', role: 'owner' }),
+    ])
+    expect(screen.queryByRole('button', { name: /^Remove / })).not.toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Leave this sender' }))
+    server.use(
+      http.get(`${ORIGIN}/v1/orgs/o1`, () => {
+        orgGets++
+        return HttpResponse.json({ error: { code: 'not_found', message: 'x' } }, { status: 404 })
+      }),
+    )
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Leave' }))
+    expect(await screen.findByText('Create your first sender')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/')
+    expect(calls).toEqual([
+      { method: 'DELETE', url: `${ORIGIN}/v1/orgs/o1/members/u1`, body: null },
+    ])
+    expect(orgGets).toBe(0)
+  })
+
+  it('owners do not get a Leave button', async () => {
+    setup()
+    await screen.findByRole('button', { name: 'Remove ada@example.com' })
+    expect(screen.queryByRole('button', { name: 'Leave this sender' })).not.toBeInTheDocument()
+  })
 })

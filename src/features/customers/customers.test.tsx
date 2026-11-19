@@ -80,7 +80,7 @@ describe('customers', () => {
     expect(cursors).toEqual([null, 'c1'])
   })
 
-  it('shows empty and error states', async () => {
+  it('shows the empty state', async () => {
     server.use(
       ...orgHandlers([testOrg()]),
       http.get(`${ORIGIN}/v1/orgs/:id/links`, () =>
@@ -89,5 +89,17 @@ describe('customers', () => {
     )
     renderApp({ route: '/orgs/o1/customers', session: testMe })
     expect(await screen.findByText('No linked customers')).toBeInTheDocument()
+  })
+
+  it('shows an error state with retry', async () => {
+    server.use(
+      ...orgHandlers([testOrg()]),
+      http.get(`${ORIGIN}/v1/orgs/:id/links`, () =>
+        HttpResponse.json({ error: { code: 'server_busy', message: 'x' } }, { status: 503 }),
+      ),
+    )
+    renderApp({ route: '/orgs/o1/customers', session: testMe })
+    expect(await screen.findByText('Busy, try again in a moment.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument()
   })
 })

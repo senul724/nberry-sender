@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { api } from '../../api/client'
 import { friendlyMessage } from '../../api/errors'
 import { useCurrentOrg } from '../../orgs/context'
-import { orgKey, orgsKey } from '../../orgs/queries'
+import { dropOrg } from '../../orgs/queries'
 import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
@@ -27,8 +27,7 @@ export function DangerPage() {
     onSuccess: () => {
       // Leave first so nothing refetches the deleted org, then drop its caches.
       navigate('/', { replace: true })
-      queryClient.removeQueries({ queryKey: orgKey(org.id) })
-      void queryClient.invalidateQueries({ queryKey: orgsKey })
+      dropOrg(queryClient, org.id)
     },
   })
 
