@@ -162,8 +162,8 @@
 - [ ] **Step 1: Failing tests:**
   - `a user with no orgs sees "Create your first sender" and creating one navigates to /orgs/:id`;
   - `index redirects to the first org`;
-  - `developer: nav hides Team-manage, Settings and Danger; shows Compose, Messages, QR, Customers, API keys, Developers`;
-  - `admin: hides Danger zone and member editing`;
+  - `developer: nav hides Settings and Danger; shows Overview, Compose, Messages, QR, Customers, API keys, Team (view-only), Developers`;
+  - `admin: nav hides Danger; shows Settings and Team (view-only; member editing is owner-only, tested in Task 7)`;
   - `owner: sees everything`;
   - `a developer opening /orgs/:id/settings/danger directly sees the no-access state` (Review Focus 4);
   - `pending and suspended orgs show the status banner; verified shows the ✓ badge`;
