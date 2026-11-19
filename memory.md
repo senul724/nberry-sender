@@ -2,7 +2,7 @@
 
 ## Overview
 Web dashboard for nBerry senders (orgs): setup, compose broadcasts, messages, QR, API keys, team, account, admin.
-- **Status:** design approved 2026-11-19; Plan 1 (whole dashboard) being built subagent-driven.
+- **Status:** Plan 1 tasks 1-8 implemented (all screens built); pending final review. Next: manual run against the real backend.
 - Design: `docs/superpowers/specs/2026-11-19-sender-dashboard-design.md`. Plan: `docs/superpowers/plans/2026-11-19-plan-1-dashboard.md`.
 
 ## Tech Stack
@@ -29,11 +29,14 @@ Vite + React 19 + TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), React Ro
 - Pins: TypeScript ~6.0 (typescript-eslint doesn't support TS 7 yet), MSW 2.x (brief/API: `onUnhandledRequest`; MSW 3 dropped it from `listen`).
 
 ## Current Focus / Next Steps
-- [x] Tasks 1-5 done (scaffold, API client, auth, org shell/roles/overview, compose + messages). [ ] Tasks 6–8 (QR, keys, team, settings, account, admin): replace the placeholder pages under `src/features/*`.
+- [x] Tasks 1-8 done. Structure: one folder per screen under `src/features/*` (account, admin, developers, ...), shared UI in `src/ui`, org context in `src/orgs` (`dropOrg` clears a departed org's cache), API client in `src/api`.
+- [ ] Final review, then try it against the real backend (`pnpm dev`).
 
 ## Session Log
 - 2026-11-19 — Created repo, design doc and plan; started subagent-driven build.
 - 2026-11-19 — Task 1: scaffolded Vite/Tailwind/Vitest/MSW, UI primitives in `src/ui`, test harness.
 - 2026-11-19 — Tasks 3-4: auth screens, then org shell/roles/overview plus Task 3 review follow-ups.
 - 2026-11-19 — Task 5: Compose (idempotency key per attempt, client validation mirroring backend) and Messages table; org outlet keyed by org id.
+- 2026-11-19 — Decision: /admin gates itself on `me.is_admin` (AdminPage shows no-access); delete-account re-auth is a manual retry after Google sign-in (destructive action is never auto-retried).
 - 2026-11-19: Task 7 done (Team, Danger zone, Customers) plus Task 6 follow-ups.
+- 2026-11-19: Task 8 done (Developers docs, Account, Admin) plus follow-ups: Leave this sender, dropOrg, Added note, customers error test.

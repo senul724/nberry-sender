@@ -2,6 +2,19 @@
 
 Web dashboard for businesses that send notifications through the nBerry backend. Vite + React 19 + TypeScript (strict), Tailwind v4, React Router, TanStack Query; tests with Vitest, Testing Library and MSW.
 
+## Features
+
+- Sign up, log in (email, 2FA code, Google), password reset
+- Sender (org) switcher and creation, role-based navigation (owner, admin, developer)
+- Overview stats and setup checklist
+- Compose a broadcast from the dashboard (idempotent) and a Messages table
+- Broadcast QR code (PNG, SVG, printable poster) and code regeneration
+- Settings: details, logo, callback URL and signing secret; API keys (shown once)
+- Team (add, change role, remove, leave), danger zone (delete sender), linked customers
+- Developers: copy-paste `curl` and Node examples for `/v1/send/*` and callback signature verification
+- Account: name, 2FA, email change, sessions, delete account
+- Admin (platform admins only): sender status and send rate
+
 ## Development
 
 1. Run the nBerry backend with cookies that work over plain HTTP and CORS for the dev origin:
