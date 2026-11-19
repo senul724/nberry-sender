@@ -32,6 +32,8 @@ Web dashboard for businesses that send notifications through the nBerry backend.
 
    Vite proxies `/v1` to `http://localhost:8080` (`changeOrigin: false`), so the browser sees one origin and the auth cookies stay same-origin.
 
+The dashboard needs a secure context (`https://` or `http://localhost`): the Compose page uses `crypto.randomUUID`, which browsers disable on plain-`http` LAN hosts (e.g. `http://192.168.x.x:5173`).
+
 ## Scripts
 
 | Command          | What it does                   |

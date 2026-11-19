@@ -20,6 +20,7 @@ Vite + React 19 + TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), React Ro
 ## Backend facts that shape the client
 - Cookies: `nb_access` (HttpOnly, 15 min), `nb_refresh` (HttpOnly, Path=/v1/auth, 30 d), `nb_csrf` (readable, 30 d). Double-submit: `X-CSRF-Token` must equal the `nb_csrf` cookie on every non-GET, **including `POST /v1/auth/refresh`**.
 - Refresh rotates every time; reuse of an old refresh token revokes the session → refresh must be single-flight.
+- Refresh runs CSRF before reading the cookie: no `nb_csrf` → 403 `csrf_failed`, so the client skips refresh without a CSRF value and treats csrf_failed as session expiry. It refreshes only on 401 code `unauthorized`. `DELETE /v1/me/sessions` revokes ALL sessions (this one too). Admin endpoints return an Org without `my_role`.
 
 ## How to Run
 - Backend: `ENV=dev COOKIE_SECURE=false WEB_ORIGINS=http://localhost:5173` (Go API on :8080).
@@ -30,7 +31,8 @@ Vite + React 19 + TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), React Ro
 
 ## Current Focus / Next Steps
 - [x] Tasks 1-8 done. Structure: one folder per screen under `src/features/*` (account, admin, developers, ...), shared UI in `src/ui`, org context in `src/orgs` (`dropOrg` clears a departed org's cache), API client in `src/api`.
-- [ ] Final review, then try it against the real backend (`pnpm dev`).
+- [x] Final review fix wave applied.
+- [ ] Try it against the real backend (`pnpm dev`).
 
 ## Session Log
 - 2026-11-19 — Created repo, design doc and plan; started subagent-driven build.
@@ -40,3 +42,4 @@ Vite + React 19 + TypeScript strict, Tailwind v4 (`@tailwindcss/vite`), React Ro
 - 2026-11-19 — Decision: /admin gates itself on `me.is_admin` (AdminPage shows no-access); delete-account re-auth is a manual retry after Google sign-in (destructive action is never auto-retried).
 - 2026-11-19: Task 7 done (Team, Danger zone, Customers) plus Task 6 follow-ups.
 - 2026-11-19: Task 8 done (Developers docs, Account, Admin) plus follow-ups: Leave this sender, dropOrg, Added note, customers error test.
+- 2026-11-19: Final-review fix wave: signed-out visitors reach /login (no refresh without CSRF; 403 csrf_failed = expiry), refresh only on 401 `unauthorized`, admin `AdminOrg` (no my_role), sign-out-everywhere confirms + clears session, dropOrg prunes the cached list, lazy route pages, error copy, README secure-context note.

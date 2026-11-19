@@ -6,23 +6,26 @@ import { LoginPage } from './features/auth/LoginPage'
 import { ResetPage } from './features/auth/ResetPage'
 import { SignupPage } from './features/auth/SignupPage'
 import { VerifyEmailPage } from './features/auth/VerifyEmailPage'
-import { AccountPage } from './features/account/AccountPage'
-import { AdminPage } from './features/admin/AdminPage'
 import { ApiKeysPage } from './features/api-keys/ApiKeysPage'
 import { ComposePage } from './features/compose/ComposePage'
 import { CustomersPage } from './features/customers/CustomersPage'
-import { DevelopersPage } from './features/developers/DevelopersPage'
 import { MessagesPage } from './features/messages/MessagesPage'
 import { CreateOrgPage } from './features/orgs/CreateOrgPage'
 import { IndexRedirect } from './features/orgs/IndexRedirect'
 import { OverviewPage } from './features/overview/OverviewPage'
-import { QrPage } from './features/qr/QrPage'
-import { DangerPage } from './features/settings/DangerPage'
-import { SettingsPage } from './features/settings/SettingsPage'
 import { TeamPage } from './features/team/TeamPage'
 import { AppLayout } from './layout/AppLayout'
 import { OrgProvider } from './orgs/OrgProvider'
 import { RequireRole } from './orgs/RequireRole'
+import {
+  AccountPage,
+  AdminPage,
+  DangerPage,
+  DevelopersPage,
+  Lazy,
+  QrPage,
+  SettingsPage,
+} from './lazyPages'
 
 /**
  * Route objects, exported so tests can mount them with createMemoryRouter.
@@ -50,8 +53,8 @@ export const routes: RouteObject[] = [
             children: [
               { path: '/', element: <IndexRedirect /> },
               { path: '/orgs/new', element: <CreateOrgPage /> },
-              { path: '/account', element: <AccountPage /> },
-              { path: '/admin', element: <AdminPage /> },
+              { path: '/account', element: <Lazy page={AccountPage} /> },
+              { path: '/admin', element: <Lazy page={AdminPage} /> },
               {
                 path: '/orgs/:orgId',
                 element: <OrgProvider />,
@@ -59,7 +62,7 @@ export const routes: RouteObject[] = [
                   { index: true, element: <OverviewPage /> },
                   { path: 'compose', element: <ComposePage /> },
                   { path: 'messages', element: <MessagesPage /> },
-                  { path: 'qr', element: <QrPage /> },
+                  { path: 'qr', element: <Lazy page={QrPage} /> },
                   { path: 'customers', element: <CustomersPage /> },
                   { path: 'api-keys', element: <ApiKeysPage /> },
                   { path: 'team', element: <TeamPage /> },
@@ -67,7 +70,7 @@ export const routes: RouteObject[] = [
                     path: 'settings',
                     element: (
                       <RequireRole can="editSettings">
-                        <SettingsPage />
+                        <Lazy page={SettingsPage} />
                       </RequireRole>
                     ),
                   },
@@ -75,11 +78,11 @@ export const routes: RouteObject[] = [
                     path: 'settings/danger',
                     element: (
                       <RequireRole can="deleteOrg">
-                        <DangerPage />
+                        <Lazy page={DangerPage} />
                       </RequireRole>
                     ),
                   },
-                  { path: 'developers', element: <DevelopersPage /> },
+                  { path: 'developers', element: <Lazy page={DevelopersPage} /> },
                 ],
               },
             ],

@@ -1,0 +1,35 @@
+import { lazy, Suspense, type ComponentType } from 'react'
+import { Spinner } from './ui/Spinner'
+
+// Heavier, less-visited pages load on demand to keep the first bundle small.
+export const AccountPage = lazy(() =>
+  import('./features/account/AccountPage').then((m) => ({ default: m.AccountPage })),
+)
+export const AdminPage = lazy(() =>
+  import('./features/admin/AdminPage').then((m) => ({ default: m.AdminPage })),
+)
+export const DevelopersPage = lazy(() =>
+  import('./features/developers/DevelopersPage').then((m) => ({ default: m.DevelopersPage })),
+)
+export const QrPage = lazy(() => import('./features/qr/QrPage').then((m) => ({ default: m.QrPage })))
+export const SettingsPage = lazy(() =>
+  import('./features/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+)
+export const DangerPage = lazy(() =>
+  import('./features/settings/DangerPage').then((m) => ({ default: m.DangerPage })),
+)
+
+export function Lazy({ page: Page }: { page: ComponentType }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center py-16">
+          <Spinner />
+        </div>
+      }
+    >
+      <Page />
+    </Suspense>
+  )
+}
+

@@ -8,7 +8,8 @@ import { server } from '../../test/server'
 
 /** Admin endpoints return an Org without `my_role` (the backend omits it). */
 function testOrg(overrides: Parameters<typeof baseOrg>[0] = {}) {
-  const { my_role: _omitted, ...org } = baseOrg(overrides)
+  const org: Partial<ReturnType<typeof baseOrg>> = baseOrg(overrides)
+  delete org.my_role
   return org
 }
 
