@@ -1,18 +1,21 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { api } from '../../api/client'
 import { friendlyMessage } from '../../api/errors'
 import { GoogleButton } from '../../auth/GoogleButton'
+import { safeNext, useSignedIn } from '../../auth/session'
 import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
-import { AuthLayout, linkClass } from './AuthLayout'
+import { linkClass } from '../../ui/focus'
+import { AuthLayout } from './AuthLayout'
 
 const CheckEmail = z.object({ status: z.string() })
 
 export function SignupPage() {
   const navigate = useNavigate()
+  const signedIn = useSignedIn()
   const [params] = useSearchParams()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -36,6 +39,8 @@ export function SignupPage() {
       setBusy(false)
     }
   }
+
+  if (signedIn) return <Navigate to={safeNext(params.get('next'))} replace />
 
   return (
     <AuthLayout

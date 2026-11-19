@@ -6,7 +6,8 @@ import { ApiError, friendlyMessage } from '../../api/errors'
 import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
-import { AuthLayout, linkClass } from './AuthLayout'
+import { linkClass } from '../../ui/focus'
+import { AuthLayout } from './AuthLayout'
 
 const CheckEmail = z.object({ status: z.string() })
 
@@ -27,8 +28,10 @@ export function ForgotPage() {
       })
       setDone(true)
     } catch (err) {
-      // Never reveal whether the account exists: only a rate limit is surfaced.
-      if (err instanceof ApiError && err.status === 429) setError(friendlyMessage(err))
+      // Never reveal whether the account exists. Only failures that say nothing about the
+      // account (rate limit, network, server error) are surfaced; the rest keep the neutral copy.
+      if (err instanceof ApiError && (err.status === 0 || err.status === 429 || err.status >= 500))
+        setError(friendlyMessage(err))
       else setDone(true)
     } finally {
       setBusy(false)

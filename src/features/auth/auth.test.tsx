@@ -10,11 +10,23 @@ import { Outlet, type RouteObject } from 'react-router-dom'
 import { ORIGIN, testMe, testTokens, unauthorized } from '../../test/handlers'
 import { renderApp } from '../../test/render'
 import { server } from '../../test/server'
-import { HomePage } from '../home/HomePage'
+import { LogoutButton } from './LogoutButton'
+import { safeNext, useMe } from '../../auth/session'
+import { SignupPage } from './SignupPage'
 import { LoginPage } from './LoginPage'
 
 const cfg = vi.hoisted(() => ({ apiBaseUrl: '', googleClientId: undefined as string | undefined }))
 vi.mock('../../config', () => ({ config: cfg }))
+
+function HomePage() {
+  const me = useMe()
+  return (
+    <main>
+      <h1>Signed in as {me.data?.name}</h1>
+      <LogoutButton />
+    </main>
+  )
+}
 
 const apiErr = (code: string, status: number, message = 'm') =>
   HttpResponse.json({ error: { code, message } }, { status })
@@ -46,6 +58,7 @@ const routes: RouteObject[] = [
     ),
     children: [
       { path: '/login', element: <LoginPage /> },
+      { path: '/signup', element: <SignupPage /> },
       {
         element: <RequireAuth />,
         children: [
@@ -338,6 +351,92 @@ describe('RequireAuth and session', () => {
     expect(router.state.location.pathname).toBe('/login')
     expect(csrf).toBeTypeOf('string')
     expect(queryClient.getQueryData(['me'])).toBeUndefined()
+  })
+})
+
+describe('Task 3 follow-ups', () => {
+  it('forgot shows the error banner on a network error and on 5xx', async () => {
+    const user = userEvent.setup()
+    server.use(http.post(`${ORIGIN}/v1/auth/password/forgot`, () => HttpResponse.error()))
+    renderApp({ route: '/forgot' })
+    await user.type(screen.getByLabelText('Email'), 'a@example.com')
+    await user.click(screen.getByRole('button', { name: 'Send code' }))
+    expect(
+      await screen.findByText("Can't reach nBerry. Check your connection and try again."),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/we've sent a code/)).not.toBeInTheDocument()
+
+    server.use(
+      http.post(`${ORIGIN}/v1/auth/password/forgot`, () => apiErr('internal', 503, 'down')),
+    )
+    await user.click(screen.getByRole('button', { name: 'Send code' }))
+    expect(await screen.findByText('down')).toBeInTheDocument()
+    expect(screen.queryByText(/we've sent a code/)).not.toBeInTheDocument()
+  })
+
+  it('forgot keeps the neutral copy for other 4xx', async () => {
+    const user = userEvent.setup()
+    server.use(http.post(`${ORIGIN}/v1/auth/password/forgot`, () => apiErr('not_found', 404)))
+    renderApp({ route: '/forgot' })
+    await user.type(screen.getByLabelText('Email'), 'a@example.com')
+    await user.click(screen.getByRole('button', { name: 'Send code' }))
+    expect(
+      await screen.findByText("If that account exists, we've sent a code."),
+    ).toBeInTheDocument()
+  })
+
+  it('MFA "Back to sign in" clears the stale error and code', async () => {
+    const user = userEvent.setup()
+    loginFlow(() => HttpResponse.json({ mfa_required: true, mfa_token: 'm1' }))
+    server.use(
+      http.post(`${ORIGIN}/v1/auth/mfa/verify`, () => apiErr('invalid_code', 401, 'Wrong code')),
+    )
+    renderApp({ route: '/login', routes })
+    await fillLogin(user)
+    await user.type(await screen.findByLabelText('6-digit code'), '123456')
+    await user.click(screen.getByRole('button', { name: 'Verify' }))
+    expect(await screen.findByText('Wrong code')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Back to sign in' }))
+    expect(screen.queryByText('Wrong code')).not.toBeInTheDocument()
+    await user.type(screen.getByLabelText('Password'), 'hunter2hunter2')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(await screen.findByLabelText('6-digit code')).toHaveValue('')
+    expect(screen.queryByText('Wrong code')).not.toBeInTheDocument()
+  })
+
+  it.each(['/\\evil.example', 'https://evil.example', 'javascript:alert(1)', '//evil.example'])(
+    'safeNext rejects %s',
+    (raw) => {
+      expect(safeNext(raw)).toBe('/')
+    },
+  )
+
+  it('safeNext keeps same-origin paths', () => {
+    expect(safeNext('/orgs/o1?x=1')).toBe('/orgs/o1?x=1')
+  })
+
+  it.each(['/login', '/signup'])(
+    'a signed-in user who is known to be loaded is redirected from %s to /',
+    async (path) => {
+      const { router } = renderApp({ route: '/', session: testMe, routes })
+      await screen.findByText('Signed in as Ada Lovelace')
+      await act(() => router.navigate(path))
+      await waitFor(() => expect(router.state.location.pathname).toBe('/'))
+      expect(screen.getByText('Signed in as Ada Lovelace')).toBeInTheDocument()
+    },
+  )
+
+  it('a signed-out user on /login sees the form and triggers no /v1/me request', async () => {
+    let meCalls = 0
+    server.use(
+      http.get(`${ORIGIN}/v1/me`, () => {
+        meCalls++
+        return unauthorized()
+      }),
+    )
+    renderApp({ route: '/login', routes })
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    expect(meCalls).toBe(0)
   })
 })
 

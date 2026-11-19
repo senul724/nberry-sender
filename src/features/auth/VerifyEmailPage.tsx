@@ -6,7 +6,8 @@ import { friendlyMessage } from '../../api/errors'
 import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
-import { AuthLayout, linkClass } from './AuthLayout'
+import { linkClass } from '../../ui/focus'
+import { AuthLayout } from './AuthLayout'
 
 const CheckEmail = z.object({ status: z.string() })
 

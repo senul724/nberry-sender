@@ -15,6 +15,15 @@ export function useMe() {
   return useQuery({ queryKey: ME_KEY, queryFn: fetchMe, staleTime: 5 * 60_000 })
 }
 
+/**
+ * True once `me` is already loaded successfully in the cache. Never fetches (so signed-out
+ * visitors cause no request) and ignores an errored query that still holds stale data.
+ */
+export function useSignedIn(): boolean {
+  const q = useQuery({ queryKey: ME_KEY, queryFn: fetchMe, enabled: false })
+  return q.status === 'success'
+}
+
 /** Only same-origin relative paths are accepted as a post-login destination. */
 export function safeNext(raw: string | null | undefined): string {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return '/'

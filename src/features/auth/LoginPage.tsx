@@ -1,20 +1,22 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { api } from '../../api/client'
 import { ApiError, friendlyMessage } from '../../api/errors'
 import { LoginResponse, TokensWeb } from '../../api/schemas'
 import { deviceInfo } from '../../auth/device'
 import { GoogleButton } from '../../auth/GoogleButton'
-import { useCompleteLogin } from '../../auth/session'
+import { safeNext, useCompleteLogin, useSignedIn } from '../../auth/session'
 import { Banner } from '../../ui/Banner'
 import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
-import { AuthLayout, linkClass } from './AuthLayout'
+import { linkClass } from '../../ui/focus'
+import { AuthLayout } from './AuthLayout'
 
 export function LoginPage() {
   const [params] = useSearchParams()
   const next = params.get('next')
   const complete = useCompleteLogin()
+  const signedIn = useSignedIn()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mfaToken, setMfaToken] = useState<string | null>(null)
@@ -79,13 +81,23 @@ export function LoginPage() {
     </Banner>
   )
 
+  if (signedIn) return <Navigate to={safeNext(next)} replace />
+
   if (mfaToken) {
     return (
       <AuthLayout
         title="Enter your code"
         subtitle="We emailed a 6-digit code to confirm it's you."
         footer={
-          <button type="button" className={linkClass} onClick={() => setMfaToken(null)}>
+          <button
+            type="button"
+            className={linkClass}
+            onClick={() => {
+              setMfaToken(null)
+              setError(null)
+              setCode('')
+            }}
+          >
             Back to sign in
           </button>
         }
